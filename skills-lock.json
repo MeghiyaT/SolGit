@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "skills": {
+    "solidity-adversarial-analysis": {
+      "source": "whackur/solidity-agent-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-adversarial-analysis/SKILL.md",
+      "computedHash": "e7eb4bc3db5272e5f985765e2f5246e9dcebd4be58c4bfb536a599272f10fb74"
+    },
+    "solidity-code-review": {
+      "source": "whackur/solidity-agent-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-code-review/SKILL.md",
+      "computedHash": "5117453455d78bd0b30148d11fd77cefb7af112d06927be81dc96501175ed24b"
+    },
+    "solidity-foundry-development": {
+      "source": "whackur/solidity-agent-toolkit",
+      "sourceType": "github",
+      "skillPath": "skills/solidity-foundry-development/SKILL.md",
+      "computedHash": "ee8f99c4e4da43b1b530b100b109d819d3313b5d6dd5252fadad9f0280dd9d27"
+    },
+    "vercel-react-best-practices": {
+      "source": "vercel-labs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/react-best-practices/SKILL.md",
+      "computedHash": "3219a1944e404ffc14d1d9d6aef6dd2e3855b81387ee0a044ccbfe14d34c2357"
+    }
+  }
+}

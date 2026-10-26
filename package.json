@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@mstblockchain/mst-vibe-kit": "^0.1.1"
+  }
+}
