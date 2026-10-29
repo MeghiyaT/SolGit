@@ -25,26 +25,13 @@ interface IVersionRegistry {
     //  Events
     // ──────────────────────────────────────────────
 
-    event VersionPushed(
-        bytes4 indexed selector,
-        uint32 version,
-        address implementation,
-        bytes32 codeHash
-    );
+    event VersionPushed(bytes4 indexed selector, uint32 version, address implementation, bytes32 codeHash);
 
     event VersionPromoted(bytes4 indexed selector, uint32 version);
 
-    event VersionRolledBack(
-        bytes4 indexed selector,
-        uint32 quarantinedVersion,
-        uint32 activeVersion
-    );
+    event VersionRolledBack(bytes4 indexed selector, uint32 quarantinedVersion, uint32 activeVersion);
 
-    event VersionManuallyReverted(
-        bytes4 indexed selector,
-        uint32 fromVersion,
-        uint32 toVersion
-    );
+    event VersionManuallyReverted(bytes4 indexed selector, uint32 fromVersion, uint32 toVersion);
 
     // ──────────────────────────────────────────────
     //  Functions

@@ -45,7 +45,7 @@ contract VaultV1 {
         vs.totalDeposits -= amount;
 
         // Interactions
-        (bool ok, ) = msg.sender.call{value: amount}("");
+        (bool ok,) = msg.sender.call{value: amount}("");
         if (!ok) revert SolGitErrors.Unauthorized();
 
         emit Withdrawn(msg.sender, amount);

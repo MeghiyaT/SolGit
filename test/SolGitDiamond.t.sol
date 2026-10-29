@@ -45,9 +45,7 @@ contract SolGitDiamondTest is Test {
         bytes4[] memory cutSelectors = new bytes4[](1);
         cutSelectors[0] = IDiamondCut.diamondCut.selector;
         cuts[0] = IDiamondCut.FacetCut({
-            facetAddress: address(cutFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: cutSelectors
+            facetAddress: address(cutFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: cutSelectors
         });
 
         // LoupeFacet
@@ -58,9 +56,7 @@ contract SolGitDiamondTest is Test {
         loupeSelectors[3] = IDiamondLoupe.facetAddress.selector;
         loupeSelectors[4] = DiamondLoupeFacet.supportsInterface.selector;
         cuts[1] = IDiamondCut.FacetCut({
-            facetAddress: address(loupeFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: loupeSelectors
+            facetAddress: address(loupeFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: loupeSelectors
         });
 
         // OwnershipFacet
@@ -68,9 +64,7 @@ contract SolGitDiamondTest is Test {
         ownerSelectors[0] = IERC173.owner.selector;
         ownerSelectors[1] = IERC173.transferOwnership.selector;
         cuts[2] = IDiamondCut.FacetCut({
-            facetAddress: address(ownerFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: ownerSelectors
+            facetAddress: address(ownerFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: ownerSelectors
         });
 
         // GuardianFacet
@@ -93,9 +87,7 @@ contract SolGitDiamondTest is Test {
         vaultSelectors[2] = VaultV1.transfer.selector;
         vaultSelectors[3] = VaultV1.balanceOf.selector;
         cuts[4] = IDiamondCut.FacetCut({
-            facetAddress: address(vaultV1),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: vaultSelectors
+            facetAddress: address(vaultV1), action: IDiamondCut.FacetCutAction.Add, functionSelectors: vaultSelectors
         });
 
         // 3. Deploy Diamond proxy
@@ -122,29 +114,22 @@ contract SolGitDiamondTest is Test {
         vm.startPrank(user);
 
         // Deposit 10 ether
-        (bool okDeposit, ) = address(diamond).call{value: 10 ether}(
-            abi.encodeWithSelector(VaultV1.deposit.selector)
-        );
+        (bool okDeposit,) = address(diamond).call{value: 10 ether}(abi.encodeWithSelector(VaultV1.deposit.selector));
         assertTrue(okDeposit, "Deposit failed");
 
         // Check balance
-        (bool okBal, bytes memory balData) = address(diamond).call(
-            abi.encodeWithSelector(VaultV1.balanceOf.selector, user)
-        );
+        (bool okBal, bytes memory balData) =
+            address(diamond).call(abi.encodeWithSelector(VaultV1.balanceOf.selector, user));
         assertTrue(okBal, "balanceOf failed");
         uint256 balance = abi.decode(balData, (uint256));
         assertEq(balance, 10 ether);
 
         // Withdraw 4 ether
-        (bool okWithdraw, ) = address(diamond).call(
-            abi.encodeWithSelector(VaultV1.withdraw.selector, 4 ether)
-        );
+        (bool okWithdraw,) = address(diamond).call(abi.encodeWithSelector(VaultV1.withdraw.selector, 4 ether));
         assertTrue(okWithdraw, "Withdraw failed");
 
         // Check remaining balance
-        (, balData) = address(diamond).call(
-            abi.encodeWithSelector(VaultV1.balanceOf.selector, user)
-        );
+        (, balData) = address(diamond).call(abi.encodeWithSelector(VaultV1.balanceOf.selector, user));
         balance = abi.decode(balData, (uint256));
         assertEq(balance, 6 ether);
 

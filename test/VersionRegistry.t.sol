@@ -177,9 +177,7 @@ contract VersionRegistryTest is Test {
         registry.rollback(WITHDRAW_SEL, 2, 1);
 
         // Owner attempts manual revert to quarantined v2 -> must revert
-        vm.expectRevert(
-            abi.encodeWithSelector(SolGitErrors.VersionQuarantined.selector, WITHDRAW_SEL, uint32(2))
-        );
+        vm.expectRevert(abi.encodeWithSelector(SolGitErrors.VersionQuarantined.selector, WITHDRAW_SEL, uint32(2)));
         registry.manualRevert(WITHDRAW_SEL, 2);
     }
 

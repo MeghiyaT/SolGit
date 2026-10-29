@@ -31,11 +31,7 @@ contract SolGitGuardianFacet is ISolGitGuardian {
     }
 
     /// @inheritdoc ISolGitGuardian
-    function emergencyRollback(
-        bytes4 _selector,
-        address _targetFacet,
-        string calldata _reason
-    ) external override {
+    function emergencyRollback(bytes4 _selector, address _targetFacet, string calldata _reason) external override {
         LibDiamond.enforceIsGuardian();
         LibDiamond.rollbackSelector(_selector, _targetFacet, _reason);
     }

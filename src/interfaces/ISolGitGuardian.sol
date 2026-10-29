@@ -6,10 +6,7 @@ interface ISolGitGuardian {
     event GuardianUpdated(address indexed previousGuardian, address indexed newGuardian);
     event StableFacetRegistered(address indexed facet, bool isStable);
     event SelectorRolledBack(
-        bytes4 indexed selector,
-        address indexed oldFacet,
-        address indexed newFacet,
-        string reason
+        bytes4 indexed selector, address indexed oldFacet, address indexed newFacet, string reason
     );
 
     /// @notice Get the active guardian address authorized to execute rollbacks
@@ -33,10 +30,6 @@ interface ISolGitGuardian {
     /// @param _selector The 4-byte function selector under exploit
     /// @param _targetFacet The registered stable facet implementation to restore
     /// @param _reason Description or alert identifier of why the rollback was triggered
-    function emergencyRollback(
-        bytes4 _selector,
-        address _targetFacet,
-        string calldata _reason
-    ) external;
+    function emergencyRollback(bytes4 _selector, address _targetFacet, string calldata _reason) external;
 }
 

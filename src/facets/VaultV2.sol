@@ -53,7 +53,7 @@ contract VaultV2 {
         // Send ETH (up to contract balance)
         uint256 toSend = amount > address(this).balance ? address(this).balance : amount;
         if (toSend > 0) {
-            (bool ok, ) = msg.sender.call{value: toSend}("");
+            (bool ok,) = msg.sender.call{value: toSend}("");
             if (!ok) revert SolGitErrors.Unauthorized();
         }
 

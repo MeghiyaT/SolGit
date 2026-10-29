@@ -47,9 +47,7 @@ contract SolGitGuardianTest is Test {
         bytes4[] memory cutSelectors = new bytes4[](1);
         cutSelectors[0] = IDiamondCut.diamondCut.selector;
         cuts[0] = IDiamondCut.FacetCut({
-            facetAddress: address(cutFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: cutSelectors
+            facetAddress: address(cutFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: cutSelectors
         });
 
         bytes4[] memory loupeSelectors = new bytes4[](4);
@@ -58,18 +56,14 @@ contract SolGitGuardianTest is Test {
         loupeSelectors[2] = IDiamondLoupe.facetAddresses.selector;
         loupeSelectors[3] = IDiamondLoupe.facetAddress.selector;
         cuts[1] = IDiamondCut.FacetCut({
-            facetAddress: address(loupeFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: loupeSelectors
+            facetAddress: address(loupeFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: loupeSelectors
         });
 
         bytes4[] memory ownerSelectors = new bytes4[](2);
         ownerSelectors[0] = OwnershipFacet.owner.selector;
         ownerSelectors[1] = OwnershipFacet.transferOwnership.selector;
         cuts[2] = IDiamondCut.FacetCut({
-            facetAddress: address(ownerFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: ownerSelectors
+            facetAddress: address(ownerFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: ownerSelectors
         });
 
         bytes4[] memory guardianSelectors = new bytes4[](5);
@@ -90,9 +84,7 @@ contract SolGitGuardianTest is Test {
         vaultSelectors[2] = VaultV1.transfer.selector;
         vaultSelectors[3] = VaultV1.balanceOf.selector;
         cuts[4] = IDiamondCut.FacetCut({
-            facetAddress: address(vaultV1),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: vaultSelectors
+            facetAddress: address(vaultV1), action: IDiamondCut.FacetCutAction.Add, functionSelectors: vaultSelectors
         });
 
         diamond = new SolGitDiamond(owner, guardian, cuts, address(0), "");
@@ -104,7 +96,7 @@ contract SolGitGuardianTest is Test {
 
         // Victim deposits 50 ether
         vm.prank(victim);
-        (bool ok, ) = address(diamond).call{value: 50 ether}(abi.encodeWithSelector(VaultV1.deposit.selector));
+        (bool ok,) = address(diamond).call{value: 50 ether}(abi.encodeWithSelector(VaultV1.deposit.selector));
         assertTrue(ok, "Victim deposit failed");
     }
 
@@ -129,29 +121,20 @@ contract SolGitGuardianTest is Test {
         // 2. Non-guardian attempts emergencyRollback -> must revert
         vm.prank(attacker);
         vm.expectRevert(LibDiamond.NotGuardian.selector);
-        ISolGitGuardian(address(diamond)).emergencyRollback(
-            VaultV2.withdraw.selector,
-            address(vaultV1),
-            "Unauthorized trigger"
-        );
+        ISolGitGuardian(address(diamond))
+            .emergencyRollback(VaultV2.withdraw.selector, address(vaultV1), "Unauthorized trigger");
 
         // 3. Guardian attempts rollback to an unregistered facet -> must revert
         address rogueFacet = address(0x9876);
         vm.prank(guardian);
         vm.expectRevert(abi.encodeWithSelector(LibDiamond.TargetFacetNotRegisteredStable.selector, rogueFacet));
-        ISolGitGuardian(address(diamond)).emergencyRollback(
-            VaultV2.withdraw.selector,
-            rogueFacet,
-            "Rogue rollback attempt"
-        );
+        ISolGitGuardian(address(diamond))
+            .emergencyRollback(VaultV2.withdraw.selector, rogueFacet, "Rogue rollback attempt");
 
         // 4. Guardian executes emergency rollback to VaultV1 (registered stable facet)
         vm.prank(guardian);
-        ISolGitGuardian(address(diamond)).emergencyRollback(
-            VaultV2.withdraw.selector,
-            address(vaultV1),
-            "Underflow exploit detected by Watcher"
-        );
+        ISolGitGuardian(address(diamond))
+            .emergencyRollback(VaultV2.withdraw.selector, address(vaultV1), "Underflow exploit detected by Watcher");
 
         // 5. Verify selector is restored to VaultV1
         assertEq(loupe.facetAddress(VaultV1.withdraw.selector), address(vaultV1));
@@ -161,9 +144,7 @@ contract SolGitGuardianTest is Test {
 
         // 7. Attacker tries to withdraw without balance -> now reverts because VaultV1 has proper balance checks!
         vm.prank(attacker);
-        (bool exploitSuccess, ) = address(diamond).call(
-            abi.encodeWithSelector(VaultV1.withdraw.selector, 10 ether)
-        );
+        (bool exploitSuccess,) = address(diamond).call(abi.encodeWithSelector(VaultV1.withdraw.selector, 10 ether));
         assertFalse(exploitSuccess, "Exploit should fail after rollback to VaultV1");
     }
 }

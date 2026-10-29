@@ -52,9 +52,7 @@ contract Deploy is Script {
         bytes4[] memory cutSelectors = new bytes4[](1);
         cutSelectors[0] = IDiamondCut.diamondCut.selector;
         cuts[0] = IDiamondCut.FacetCut({
-            facetAddress: address(cutFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: cutSelectors
+            facetAddress: address(cutFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: cutSelectors
         });
 
         bytes4[] memory loupeSelectors = new bytes4[](4);
@@ -63,18 +61,14 @@ contract Deploy is Script {
         loupeSelectors[2] = IDiamondLoupe.facetAddresses.selector;
         loupeSelectors[3] = IDiamondLoupe.facetAddress.selector;
         cuts[1] = IDiamondCut.FacetCut({
-            facetAddress: address(loupeFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: loupeSelectors
+            facetAddress: address(loupeFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: loupeSelectors
         });
 
         bytes4[] memory ownerSelectors = new bytes4[](2);
         ownerSelectors[0] = OwnershipFacet.owner.selector;
         ownerSelectors[1] = OwnershipFacet.transferOwnership.selector;
         cuts[2] = IDiamondCut.FacetCut({
-            facetAddress: address(ownerFacet),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: ownerSelectors
+            facetAddress: address(ownerFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: ownerSelectors
         });
 
         bytes4[] memory guardianSelectors = new bytes4[](5);
@@ -95,9 +89,7 @@ contract Deploy is Script {
         vaultSelectors[2] = VaultV1.transfer.selector;
         vaultSelectors[3] = VaultV1.balanceOf.selector;
         cuts[4] = IDiamondCut.FacetCut({
-            facetAddress: address(vaultV1),
-            action: IDiamondCut.FacetCutAction.Add,
-            functionSelectors: vaultSelectors
+            facetAddress: address(vaultV1), action: IDiamondCut.FacetCutAction.Add, functionSelectors: vaultSelectors
         });
 
         // 5. Deploy SolGit Diamond Proxy

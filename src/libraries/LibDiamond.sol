@@ -43,10 +43,7 @@ library LibDiamond {
     event GuardianUpdated(address indexed previousGuardian, address indexed newGuardian);
     event StableFacetRegistered(address indexed facet, bool isStable);
     event SelectorRolledBack(
-        bytes4 indexed selector,
-        address indexed oldFacet,
-        address indexed newFacet,
-        string reason
+        bytes4 indexed selector, address indexed oldFacet, address indexed newFacet, string reason
     );
 
     // ──────────────────────────────────────────────
@@ -125,11 +122,7 @@ library LibDiamond {
     //  Diamond Cut (EIP-2535 Standard)
     // ──────────────────────────────────────────────
 
-    function diamondCut(
-        IDiamondCut.FacetCut[] memory _diamondCut,
-        address _init,
-        bytes memory _calldata
-    ) internal {
+    function diamondCut(IDiamondCut.FacetCut[] memory _diamondCut, address _init, bytes memory _calldata) internal {
         for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
             IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
             if (action == IDiamondCut.FacetCutAction.Add) {
@@ -205,22 +198,15 @@ library LibDiamond {
         ds.facetAddresses.push(_facetAddress);
     }
 
-    function addFunction(
-        DiamondStorage storage ds,
-        bytes4 _selector,
-        uint96 _selectorPosition,
-        address _facetAddress
-    ) internal {
+    function addFunction(DiamondStorage storage ds, bytes4 _selector, uint96 _selectorPosition, address _facetAddress)
+        internal
+    {
         ds.selectorToFacetAndPosition[_selector].functionSelectorPosition = _selectorPosition;
         ds.selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
         ds.facetFunctionSelectors[_facetAddress].functionSelectors.push(_selector);
     }
 
-    function removeFunction(
-        DiamondStorage storage ds,
-        address _facetAddress,
-        bytes4 _selector
-    ) internal {
+    function removeFunction(DiamondStorage storage ds, address _facetAddress, bytes4 _selector) internal {
         uint256 selectorPosition = ds.selectorToFacetAndPosition[_selector].functionSelectorPosition;
         uint256 lastSelectorPosition = ds.facetFunctionSelectors[_facetAddress].functionSelectors.length - 1;
 
@@ -251,11 +237,7 @@ library LibDiamond {
     // ──────────────────────────────────────────────
 
     /// @notice Emergency rollback for an individual selector to a trusted stable facet
-    function rollbackSelector(
-        bytes4 _selector,
-        address _targetFacet,
-        string memory _reason
-    ) internal {
+    function rollbackSelector(bytes4 _selector, address _targetFacet, string memory _reason) internal {
         DiamondStorage storage ds = diamondStorage();
         if (!ds.isRegisteredStableFacet[_targetFacet]) {
             revert TargetFacetNotRegisteredStable(_targetFacet);
