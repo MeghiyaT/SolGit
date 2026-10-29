@@ -128,3 +128,17 @@ kbd {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
 }
+
+/* ──────────────────────────────────────────────
+   macOS Notification Toast Animation
+   ────────────────────────────────────────────── */
+
+@keyframes toast-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
