@@ -61,7 +61,11 @@ export function TabNav({
       aria-label="Repository subnavigation"
       className="w-full border-b border-white/[0.08] bg-[#0d1117]/60 backdrop-blur-md px-4 sm:px-6"
     >
-      <div className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto scrollbar-none -mb-[1px]">
+      <div
+        role="tablist"
+        aria-label="Repository tabs"
+        className="max-w-7xl mx-auto flex items-center gap-1 overflow-x-auto scrollbar-none -mb-[1px]"
+      >
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;

@@ -308,6 +308,7 @@ export function SecurityTab({
   // ─────────────────────────────────────────────────────────
   const [running, setRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(isHacked ? 5 : 0);
+  const [prevIsHacked, setPrevIsHacked] = useState<boolean>(isHacked);
   const [selectedStageDetail, setSelectedStageDetail] = useState<PipelineStage | null>(null);
   const [expandedInvariantId, setExpandedInvariantId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -316,14 +317,15 @@ export function SecurityTab({
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [simulationSpeed, setSimulationSpeed] = useState<"fast" | "normal">("normal");
 
-  // Keep currentStep in sync when props change externally
-  useEffect(() => {
+  // Keep currentStep in sync when isHacked prop changes externally
+  if (isHacked !== prevIsHacked) {
+    setPrevIsHacked(isHacked);
     if (isHacked && currentStep === 0) {
       setCurrentStep(5);
     } else if (!isHacked && currentStep === 5 && !running) {
       setCurrentStep(0);
     }
-  }, [isHacked, currentStep, running]);
+  }
 
   // ─────────────────────────────────────────────────────────
   // Telemetry Console Log Stream

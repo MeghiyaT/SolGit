@@ -17,7 +17,6 @@ import {
   ExternalLink,
   Coins,
   CornerDownLeft,
-  X,
   Sparkles,
 } from "lucide-react";
 import type { TabType } from "../lib/types";
@@ -70,11 +69,11 @@ export function CommandPalette({
   // Focus input and reset state on open
   useEffect(() => {
     if (isOpen) {
-      setSearch("");
-      setSelectedIndex(0);
       const timer = setTimeout(() => {
+        setSearch("");
+        setSelectedIndex(0);
         inputRef.current?.focus();
-      }, 40);
+      }, 0);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -317,11 +316,6 @@ export function CommandPalette({
     });
   }, [allCommands, search]);
 
-  // Reset selected index when search changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [search]);
-
   // Scroll active item into view
   useEffect(() => {
     if (selectedItemRef.current) {
@@ -427,7 +421,10 @@ export function CommandPalette({
             ref={inputRef}
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setSelectedIndex(0);
+            }}
             placeholder="Type a command, file, selector, or action..."
             className="w-full bg-transparent text-white placeholder-zinc-500 text-sm sm:text-base focus:outline-none"
             autoFocus
@@ -435,7 +432,10 @@ export function CommandPalette({
           {search && (
             <button
               type="button"
-              onClick={() => setSearch("")}
+              onClick={() => {
+                setSearch("");
+                setSelectedIndex(0);
+              }}
               className="text-zinc-500 hover:text-zinc-300 text-xs px-2 py-0.5 rounded bg-white/5 border border-white/10 transition"
               title="Clear search"
             >

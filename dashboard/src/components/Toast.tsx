@@ -61,7 +61,7 @@ function formatMonospaceHighlights(text: string): React.ReactNode[] {
 export function Toast({ notification, onClose }: ToastProps) {
   const [isPaused, setIsPaused] = useState(false);
   const remainingTimeRef = useRef<number>(3500);
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const duration = notification?.duration ?? 3500;

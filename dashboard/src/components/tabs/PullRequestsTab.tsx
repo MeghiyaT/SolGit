@@ -998,12 +998,12 @@ export function PullRequestsTab({
                           within an <code className="text-rose-400 font-mono">unchecked &#123; &#125;</code> block:
                         </p>
                         <div className="p-3 rounded-lg bg-black/60 border border-white/10 font-mono text-[11px] text-zinc-400">
-                          <span className="text-zinc-500">// ❌ Vulnerable code in VaultV2.sol:</span>
+                          <span className="text-zinc-500">{"// ❌ Vulnerable code in VaultV2.sol:"}</span>
                           <br />
                           <span className="text-rose-400">unchecked &#123;</span>
                           <br />
                           <span className="text-rose-300 pl-4">
-                            vs.balances[msg.sender] -= amount; // No check if caller has sufficient balance!
+                            {"vs.balances[msg.sender] -= amount; // No check if caller has sufficient balance!"}
                           </span>
                           <br />
                           <span className="text-rose-400">&#125;</span>

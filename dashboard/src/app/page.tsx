@@ -1,27 +1,109 @@
 "use client";
 
-import React, { useState } from "react";
-import { Navbar } from "../components/Navbar";
-import { VersionTree } from "../components/VersionTree";
-import { CodeDiff } from "../components/CodeDiff";
-import { EventFeed } from "../components/EventFeed";
-import { PRApprovals } from "../components/PRApprovals";
-import { SimulateHack } from "../components/SimulateHack";
-import { INITIAL_SELECTORS, INITIAL_EVENTS, type SelectorFeature, type RollbackEvent } from "../lib/data";
-import { Shield, Layers, RefreshCw, GitCommit } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { TopNav } from "../components/TopNav";
+import { RepoHeader } from "../components/RepoHeader";
+import { TabNav } from "../components/TabNav";
+import { CodeTab } from "../components/tabs/CodeTab";
+import { CommitsTab } from "../components/tabs/CommitsTab";
+import { PullRequestsTab } from "../components/tabs/PullRequestsTab";
+import { SecurityTab } from "../components/tabs/SecurityTab";
+import { LoupeTab } from "../components/tabs/LoupeTab";
+import { CommandPalette } from "../components/CommandPalette";
+import { Toast } from "../components/Toast";
+import {
+  INITIAL_SELECTORS,
+  INITIAL_EVENTS,
+  CONTRACTS,
+  type SelectorFeature,
+  type RollbackEvent,
+  type VersionCommit,
+} from "../lib/data";
+import type { TabType, ToastNotification } from "../lib/types";
+import {
+  Shield,
+  Layers,
+  ExternalLink,
+  Copy,
+  Check,
+  Cpu,
+} from "lucide-react";
 
 export default function Home() {
+  // ─────────────────────────────────────────────────────────────
+  // Reactive State Machine
+  // ─────────────────────────────────────────────────────────────
+  const [activeTab, setActiveTab] = useState<TabType>("code");
+  const [selectedFile, setSelectedFile] = useState<string>("contracts/facets/VaultV2.sol");
   const [selectors, setSelectors] = useState<SelectorFeature[]>(INITIAL_SELECTORS);
-  const [selectedSelector, setSelectedSelector] = useState<SelectorFeature>(INITIAL_SELECTORS[0]);
   const [events, setEvents] = useState<RollbackEvent[]>(INITIAL_EVENTS);
-  const [isHacked, setIsHacked] = useState(false);
-  const [isMerged, setIsMerged] = useState(false);
+  const [isHacked, setIsHacked] = useState<boolean>(false);
+  const [isMerged, setIsMerged] = useState<boolean>(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const [copiedRouter, setCopiedRouter] = useState<boolean>(false);
 
-  // Trigger simulated hack attack
-  const handleTriggerHack = () => {
+  // ─────────────────────────────────────────────────────────────
+  // Toast & Clipboard Helpers
+  // ─────────────────────────────────────────────────────────────
+  const showToast = useCallback(
+    (
+      title: string,
+      description?: string,
+      type: "info" | "success" | "warning" | "error" = "info",
+      duration = 4000
+    ) => {
+      setToast({
+        id: `toast-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        title,
+        description,
+        type,
+        duration,
+      });
+    },
+    []
+  );
+
+  const handleActionToast = useCallback(
+    (msg: string) => {
+      showToast("Notification", msg, "info", 3500);
+    },
+    [showToast]
+  );
+
+  const handleCopyToast = useCallback(
+    (text: string, label?: string) => {
+      if (typeof navigator !== "undefined" && navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+      showToast(
+        "Copied to Clipboard",
+        label ? `${label}: \`${text}\`` : `\`${text}\``,
+        "success",
+        3000
+      );
+    },
+    [showToast]
+  );
+
+  const handleCopyFooterRouter = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(CONTRACTS.router).catch(() => {});
+    }
+    setCopiedRouter(true);
+    handleCopyToast(CONTRACTS.router, "Diamond Router");
+    setTimeout(() => setCopiedRouter(false), 2000);
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // State Machine Action Handlers
+  // ─────────────────────────────────────────────────────────────
+
+  // 1. Attack Simulation -> Soft-fail guard trip & automated rollback
+  const handleTriggerHack = useCallback(() => {
     setIsHacked(true);
 
-    // Update withdraw feature: V2 quarantined, active rolled back to V1
+    // Revert selector 0x2e1a7d4d (withdraw) from version 2 to version 1, mark v2 as Quarantined
     setSelectors((prev) =>
       prev.map((s) => {
         if (s.selector === "0x2e1a7d4d") {
@@ -29,7 +111,7 @@ export default function Home() {
             ...s,
             currentVersion: 1,
             history: s.history.map((h) =>
-              h.version === 2 ? { ...h, status: "Quarantined" } : h
+              h.version === 2 ? { ...h, status: "Quarantined" as const } : h
             ),
           };
         }
@@ -52,129 +134,372 @@ export default function Home() {
       invariant: "OUTFLOW_CAP (Attempted: 200 tMSTC, Max: 100 tMSTC)",
     };
     setEvents((prev) => [newEvent, ...prev]);
-  };
 
-  // Reset sandbox
-  const handleReset = () => {
-    setIsHacked(false);
-    setIsMerged(false);
-    setSelectors(INITIAL_SELECTORS);
-    setEvents(INITIAL_EVENTS);
-  };
+    // macOS Alert Toast
+    showToast(
+      "Guardian Emergency Rollback",
+      "Reverted 0x2e1a7d4d to VaultV1 (Quarantined v2)",
+      "error",
+      5000
+    );
+  }, [showToast]);
 
-  // Merge hotfix
-  const handleMergeFix = () => {
+  // 2. PR Hotfix Merge -> Version 3 promotion to Stable
+  const handleMergeFix = useCallback(() => {
     setIsMerged(true);
 
-    // Add V3 to withdraw history
+    // Promote V3 in selector registry
     setSelectors((prev) =>
       prev.map((s) => {
         if (s.selector === "0x2e1a7d4d") {
-          const v3 = {
+          const v3: VersionCommit = {
             version: 3,
-            implementation: "0xb1C889707d426A7A386870A03bc70d1b0697599",
+            implementation: CONTRACTS.vaultV2Fixed,
             codeHash: "0x4e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f",
-            status: "Stable" as const,
-            timestamp: Date.now(),
+            status: "Stable",
+            timestamp: Math.floor(Date.now() / 1000),
             author: "0xAI...Watcher",
             message: "fix(withdraw): AI-healed CEI balance verification patch",
           };
+
+          const alreadyHasV3 = s.history.some((h) => h.version === 3);
           return {
             ...s,
             currentVersion: 3,
             stableVersion: 3,
-            history: [...s.history, v3],
+            history: alreadyHasV3 ? s.history : [...s.history, v3],
           };
         }
         return s;
       })
     );
-  };
+
+    // macOS Success Toast
+    showToast(
+      "Pull Request #42 Merged",
+      "Promoted VaultV2Fixed (v3) to Stable on Diamond",
+      "success",
+      5000
+    );
+  }, [showToast]);
+
+  // 3. Reset Environment -> Restore baseline state
+  const handleReset = useCallback(() => {
+    setIsHacked(false);
+    setIsMerged(false);
+    setSelectors(INITIAL_SELECTORS);
+    setEvents(INITIAL_EVENTS);
+
+    showToast(
+      "Environment Reset",
+      "Clean state restored",
+      "info",
+      3500
+    );
+  }, [showToast]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Keyboard Shortcuts (⌘K / Ctrl+K, Escape, 1-5 Quick Tab Jumps)
+  // ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. Command Palette Toggle: ⌘K or Ctrl+K
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // 2. Escape: close palette
+      if (e.key === "Escape") {
+        if (isPaletteOpen) {
+          e.preventDefault();
+          setIsPaletteOpen(false);
+          return;
+        }
+      }
+
+      // 3. Number keys 1-5: quick tab switching
+      // Check that the user is not actively typing in an input or contenteditable element
+      const activeEl = document.activeElement;
+      const isInputFocused =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (!isPaletteOpen && !isInputFocused) {
+        // Plain 1-5 or Option+1-5
+        if ((!e.metaKey && !e.ctrlKey) || e.altKey) {
+          switch (e.key) {
+            case "1":
+              e.preventDefault();
+              setActiveTab("code");
+              break;
+            case "2":
+              e.preventDefault();
+              setActiveTab("commits");
+              break;
+            case "3":
+              e.preventDefault();
+              setActiveTab("pulls");
+              break;
+            case "4":
+              e.preventDefault();
+              setActiveTab("security");
+              break;
+            case "5":
+              e.preventDefault();
+              setActiveTab("loupe");
+              break;
+            default:
+              break;
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPaletteOpen]);
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
-      <Navbar />
+    <div className="min-h-screen bg-[#0d1117] text-zinc-100 flex flex-col font-sans selection:bg-emerald-500/20 selection:text-emerald-300">
+      {/* ──────────────────────────────────────────────────────────
+          1. macOS Top Navigation Bar (Traffic lights + Title + Search)
+          ────────────────────────────────────────────────────────── */}
+      <TopNav
+        onOpenCommandPalette={() => setIsPaletteOpen(true)}
+        onCopyAddress={(addr, label) => handleCopyToast(addr, label)}
+      />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 space-y-8">
-        {/* Hero header */}
-        <div className="relative rounded-3xl p-8 overflow-hidden border border-zinc-800 bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950">
-          <div className="absolute -right-20 -top-20 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+      {/* ──────────────────────────────────────────────────────────
+          2. GitHub Repository Meta Header (Owner/Repo, Stars, Guardian)
+          ────────────────────────────────────────────────────────── */}
+      <RepoHeader
+        isGuardianActive={true}
+        onActionToast={handleActionToast}
+      />
 
-          <div className="relative z-10 max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-medium mb-4">
-              <Shield className="h-3.5 w-3.5" /> Self-Healing Smart Contracts on MST Blockchain
-            </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
-              Git-Style Version Control for EVM Functions
-            </h1>
-            <p className="mt-3 text-sm sm:text-base text-zinc-400 leading-relaxed">
-              SolGit wraps your contract facets with the <strong className="text-zinc-200">Soft-Fail Guard pattern</strong>. When an exploit or invariant violation is detected, the inner frame reverts the attack state while the outer frame automatically quarantines the vulnerable version, restores the stable version, and dispatches an AI self-healing hotfix.
-            </p>
-          </div>
-        </div>
+      {/* ──────────────────────────────────────────────────────────
+          3. Subnavigation Tabs (Code, Commits, PRs, Security, Loupe)
+          ────────────────────────────────────────────────────────── */}
+      <TabNav
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab)}
+        prCount={isMerged ? 0 : 1}
+        hasSecurityAlert={isHacked && !isMerged}
+      />
 
-        {/* Live Attack Sandbox */}
-        <SimulateHack
-          onTriggerHack={handleTriggerHack}
-          isHacked={isHacked}
-          onReset={handleReset}
-        />
-
-        {/* Version Tree & Event Feed */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <VersionTree
-              selectors={selectors}
-              selectedSelector={selectedSelector}
-              onSelectFeature={(feat) => setSelectedSelector(feat)}
-              onSelectDiff={(feat) => setSelectedSelector(feat)}
+      {/* ──────────────────────────────────────────────────────────
+          4. Main Active Tab Container
+          ────────────────────────────────────────────────────────── */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+        <div key={activeTab} className="transition-opacity duration-200">
+          {activeTab === "code" && (
+            <CodeTab
+              selectedFile={selectedFile}
+              onSelectFile={setSelectedFile}
+              isHacked={isHacked}
+              isMerged={isMerged}
+              onCopyToast={handleCopyToast}
             />
-          </div>
+          )}
 
-          <div className="lg:col-span-1 space-y-8">
-            <EventFeed events={events} />
-            <PRApprovals onMergeFix={handleMergeFix} isMerged={isMerged} />
-          </div>
+          {activeTab === "commits" && (
+            <CommitsTab
+              selectors={selectors}
+              onOpenDiff={(selector, fromVersion, toVersion) => {
+                setActiveTab("pulls");
+                showToast(
+                  "Pull Request Diff",
+                  `Comparing ${selector} v${fromVersion ?? 2} -> v${toVersion ?? 3}`,
+                  "info",
+                  3500
+                );
+              }}
+              onCopyToast={handleCopyToast}
+            />
+          )}
+
+          {activeTab === "pulls" && (
+            <PullRequestsTab
+              isMerged={isMerged}
+              isHacked={isHacked}
+              onMergeFix={handleMergeFix}
+              onActionToast={handleActionToast}
+            />
+          )}
+
+          {activeTab === "security" && (
+            <SecurityTab
+              isHacked={isHacked}
+              events={events}
+              onTriggerHack={handleTriggerHack}
+              onReset={handleReset}
+              onActionToast={handleActionToast}
+            />
+          )}
+
+          {activeTab === "loupe" && (
+            <LoupeTab
+              selectors={selectors}
+              onCopy={handleCopyToast}
+              onActionToast={handleActionToast}
+            />
+          )}
         </div>
-
-        {/* Code Diff Inspector */}
-        <CodeDiff />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-900 bg-zinc-950/80 px-6 py-6 text-xs text-zinc-500">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-zinc-300">SolGit</span>
-            <span>—</span>
-            <span>MST Blockchain Testnet (EVM Chain ID 91562037)</span>
+      {/* ──────────────────────────────────────────────────────────
+          5. Global macOS Toast Notification (Top-Right)
+          ────────────────────────────────────────────────────────── */}
+      <Toast
+        notification={toast}
+        onClose={() => setToast(null)}
+      />
+
+      {/* ──────────────────────────────────────────────────────────
+          6. Command Palette Modal (⌘K / Ctrl+K)
+          ────────────────────────────────────────────────────────── */}
+      <CommandPalette
+        isOpen={isPaletteOpen}
+        onClose={() => setIsPaletteOpen(false)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsPaletteOpen(false);
+        }}
+        onSelectFile={(fileName) => {
+          setSelectedFile(fileName);
+          setActiveTab("code");
+          setIsPaletteOpen(false);
+        }}
+        onTriggerHack={handleTriggerHack}
+        onMergeFix={handleMergeFix}
+        onReset={handleReset}
+        onCopyAddress={(addr, label) => handleCopyToast(addr, label)}
+        isHacked={isHacked}
+        isMerged={isMerged}
+      />
+
+      {/* ──────────────────────────────────────────────────────────
+          7. GitHub + macOS Refined Footer
+          ────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-white/[0.08] bg-[#0d1117]/90 backdrop-blur-md px-4 sm:px-6 py-6 text-xs text-zinc-400 mt-auto">
+        <div className="max-w-7xl mx-auto space-y-4">
+          {/* Top Row: Network Status & Contract Architecture */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
+            {/* Network Info Pills */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10 text-zinc-300">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="font-medium">MST Blockchain Testnet</span>
+                <span className="font-mono text-[11px] text-zinc-400">(EVM ID: 91562037)</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10 text-zinc-300">
+                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Guardian Active</span>
+              </div>
+
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.04] border border-white/10 text-zinc-300">
+                <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                <span>EIP-2535 Diamond Proxy</span>
+              </div>
+            </div>
+
+            {/* Diamond Router Address Pill */}
+            <div className="flex items-center gap-2 bg-white/[0.03] border border-white/10 px-2.5 py-1 rounded-md">
+              <span className="text-zinc-500 font-mono">Router:</span>
+              <code className="font-mono text-zinc-300 text-[11px]">
+                {CONTRACTS.router.slice(0, 8)}...{CONTRACTS.router.slice(-6)}
+              </code>
+              <button
+                type="button"
+                onClick={handleCopyFooterRouter}
+                className="p-1 hover:text-emerald-400 hover:bg-white/[0.06] rounded transition"
+                title="Copy Diamond Router Address"
+                aria-label="Copy Diamond Router Address"
+              >
+                {copiedRouter ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                )}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <a
-              href="https://testnet.mstscan.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-zinc-300 transition"
-            >
-              MST Explorer
-            </a>
-            <a
-              href="https://faucet.mstblockchain.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-zinc-300 transition"
-            >
-              Faucet
-            </a>
-            <a
-              href="https://testnetrpc.mstblockchain.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-zinc-300 transition"
-            >
-              RPC
-            </a>
+
+          {/* Bottom Row: Branding, Navigation Links & Keyboard Hint */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-zinc-300 font-semibold tracking-tight">
+                <Cpu className="w-4 h-4 text-emerald-400" />
+                <span>SolGit</span>
+              </div>
+              <span className="text-zinc-600">•</span>
+              <span className="text-zinc-400">
+                Git-Style Smart Contract Version Control & AI Self-Healing
+              </span>
+            </div>
+
+            {/* Quick Keyboard Hint */}
+            <div className="hidden lg:flex items-center gap-2 text-zinc-500">
+              <span>Press</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] bg-white/[0.06] border border-white/10 rounded font-mono text-zinc-300">
+                ⌘K
+              </kbd>
+              <span>for palette</span>
+              <span className="text-zinc-700">•</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] bg-white/[0.06] border border-white/10 rounded font-mono text-zinc-300">
+                1-5
+              </kbd>
+              <span>for tabs</span>
+            </div>
+
+            {/* External Links */}
+            <div className="flex items-center gap-4 text-zinc-400">
+              <a
+                href="https://testnet.mstscan.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-emerald-400 transition flex items-center gap-1"
+              >
+                <span>MST Explorer</span>
+                <ExternalLink className="w-3 h-3 text-zinc-500" />
+              </a>
+              <a
+                href="https://faucet.mstblockchain.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-emerald-400 transition flex items-center gap-1"
+              >
+                <span>Faucet</span>
+                <ExternalLink className="w-3 h-3 text-zinc-500" />
+              </a>
+              <a
+                href="https://testnetrpc.mstblockchain.com"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-emerald-400 transition flex items-center gap-1"
+              >
+                <span>RPC</span>
+                <ExternalLink className="w-3 h-3 text-zinc-500" />
+              </a>
+              <a
+                href="https://eips.ethereum.org/EIPS/eip-2535"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-emerald-400 transition flex items-center gap-1"
+              >
+                <span>EIP-2535</span>
+                <ExternalLink className="w-3 h-3 text-zinc-500" />
+              </a>
+            </div>
           </div>
         </div>
       </footer>

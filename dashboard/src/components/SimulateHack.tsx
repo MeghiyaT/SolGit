@@ -47,7 +47,7 @@ export function SimulateHack({ onTriggerHack, isHacked, onReset }: SimulateHackP
             <h2 className="text-lg font-bold text-white">Live Attack & Auto-Rollback Sandbox</h2>
           </div>
           <p className="text-xs text-zinc-400 mt-1">
-            Simulate a real-time smart contract exploit and watch SolGit's soft-fail guard auto-heal the protocol
+            Simulate a real-time smart contract exploit and watch SolGit&apos;s soft-fail guard auto-heal the protocol
           </p>
         </div>
 

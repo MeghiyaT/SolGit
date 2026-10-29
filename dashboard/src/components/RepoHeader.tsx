@@ -82,19 +82,23 @@ export function RepoHeader({
             </div>
 
             <nav aria-label="Repository identifier" className="flex items-center gap-1.5 text-base sm:text-lg min-w-0">
-              <span
+              <button
+                type="button"
                 onClick={() => onActionToast?.("Navigating to organization: mst-protocol")}
-                className="text-zinc-400 hover:text-emerald-400 transition cursor-pointer font-normal truncate"
+                className="text-zinc-400 hover:text-emerald-400 transition cursor-pointer font-normal truncate focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 -mx-1 text-left"
+                aria-label="Repository owner: mst-protocol"
               >
                 mst-protocol
-              </span>
-              <span className="text-zinc-600">/</span>
-              <span
+              </button>
+              <span className="text-zinc-600 select-none">/</span>
+              <button
+                type="button"
                 onClick={() => onActionToast?.("Active repo: mst-protocol/solgit-vault-diamond")}
-                className="font-bold text-white tracking-tight hover:text-emerald-400 transition cursor-pointer truncate"
+                className="font-bold text-white tracking-tight hover:text-emerald-400 transition cursor-pointer truncate focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 -mx-1 text-left"
+                aria-label="Repository name: solgit-vault-diamond"
               >
                 solgit-vault-diamond
-              </span>
+              </button>
             </nav>
 
             <span className="text-xs px-2.5 py-0.5 rounded-full border border-white/10 bg-white/[0.04] text-zinc-300 font-medium">
