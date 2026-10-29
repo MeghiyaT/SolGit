@@ -1,4 +1,11 @@
 {
+  "name": "solgit",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "forge test",
+    "demo": "bash demo.sh",
+    "build": "forge build && npm --prefix cli run build && npm --prefix watcher run build && npm --prefix dashboard run build"
+  },
   "dependencies": {
     "@mstblockchain/mst-vibe-kit": "^0.1.1"
   }
