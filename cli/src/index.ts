@@ -5,6 +5,7 @@ import { statusCommand } from "./commands/status.js";
 import { logCommand } from "./commands/log.js";
 import { pushCommand } from "./commands/push.js";
 import { promoteCommand } from "./commands/promote.js";
+import { revertCommand } from "./commands/revert.js";
 import { diffCommand } from "./commands/diff.js";
 
 const program = new Command();
@@ -19,8 +20,10 @@ program
   .description("Initialize SolGit configuration (.solgit.json)")
   .option("--rpc <url>", "MST Testnet RPC URL")
   .option("--chain-id <id>", "Chain ID")
-  .option("--router <address>", "SolGitRouter contract address")
+  .option("--diamond <address>", "SolGitDiamond permanent contract address")
+  .option("--router <address>", "Diamond / Router contract address (alias)")
   .option("--registry <address>", "VersionRegistry contract address")
+  .option("--guardian <address>", "SolGit Guardian address")
   .option("--key <privateKey>", "Deployer/Owner private key")
   .action(initCommand);
 
@@ -43,6 +46,11 @@ program
   .command("promote <selector> <version>")
   .description("Promote a version to Stable status (owner only)")
   .action(promoteCommand);
+
+program
+  .command("revert <selector> <version>")
+  .description("Manually revert a function selector to a previous version (owner only)")
+  .action(revertCommand);
 
 program
   .command("diff <selector> <version1> <version2>")

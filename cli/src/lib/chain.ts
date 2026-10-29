@@ -9,8 +9,10 @@ dotenv.config();
 export interface SolGitConfig {
   rpcUrl: string;
   chainId: number;
+  diamondAddress?: Address;
   routerAddress?: Address;
   registryAddress?: Address;
+  guardianAddress?: Address;
   privateKey?: `0x${string}`;
 }
 
