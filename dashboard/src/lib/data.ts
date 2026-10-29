@@ -32,6 +32,20 @@ export interface RollbackEvent {
   invariant: string;
 }
 
+export const CONTRACTS = {
+  chainId: 91562037,
+  rpcUrl: "https://testnetrpc.mstblockchain.com",
+  explorer: "https://testnet.mstscan.com",
+  diamond: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
+  router: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
+  registry: "0x2c26812168e4F6677047407AAD1aA0ef4180Df3d",
+  guardian: "0x6A7CC7e4500f95a14471d2425403cd31c09D5e27",
+  guard: "0x6A7CC7e4500f95a14471d2425403cd31c09D5e27",
+  vaultV1: "0xF717aaE8398DA7E340c781418992b80D692253f8",
+  vaultV2: "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7",
+  attacker: "0x67852244E41F39CA15605264536E94BaBf56A4e7",
+};
+
 export const INITIAL_SELECTORS: SelectorFeature[] = [
   {
     selector: "0x2e1a7d4d",
@@ -43,17 +57,17 @@ export const INITIAL_SELECTORS: SelectorFeature[] = [
     history: [
       {
         version: 1,
-        implementation: "0xc7183455a4C133Ae270771860664b6B7ec320bB1",
+        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
         codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
         status: "Stable",
         timestamp: Date.now() - 3600000 * 24,
-        author: "0x1234...deployer",
+        author: "0xF880...416B",
         message: "feat: initial safe withdraw with balance checks and CEI",
       },
       {
         version: 2,
-        implementation: "0xa0Cb889707d426A7A386870A03bc70d1b0697598",
-        codeHash: "0xccfd6166ab8da95f5f784946d3a59120ddc34d0a23739ac4c94f107bb056f083",
+        implementation: "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7",
+        codeHash: "0x51171a8a3d9e4750beeeb90b7afb898dc1a6f67fcb591a2fe3752d4b6200e2db",
         status: "Active",
         timestamp: Date.now() - 3600000 * 2,
         author: "0x5678...contributor",
@@ -71,11 +85,11 @@ export const INITIAL_SELECTORS: SelectorFeature[] = [
     history: [
       {
         version: 1,
-        implementation: "0xc7183455a4C133Ae270771860664b6B7ec320bB1",
+        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
         codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
         status: "Stable",
         timestamp: Date.now() - 3600000 * 24,
-        author: "0x1234...deployer",
+        author: "0xF880...416B",
         message: "feat: initial safe deposit facet",
       },
     ],
@@ -90,11 +104,11 @@ export const INITIAL_SELECTORS: SelectorFeature[] = [
     history: [
       {
         version: 1,
-        implementation: "0xc7183455a4C133Ae270771860664b6B7ec320bB1",
+        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
         codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
         status: "Stable",
         timestamp: Date.now() - 3600000 * 24,
-        author: "0x1234...deployer",
+        author: "0xF880...416B",
         message: "feat: internal vault balance transfer",
       },
     ],
@@ -109,11 +123,11 @@ export const INITIAL_SELECTORS: SelectorFeature[] = [
     history: [
       {
         version: 1,
-        implementation: "0xc7183455a4C133Ae270771860664b6B7ec320bB1",
+        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
         codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
         status: "Stable",
         timestamp: Date.now() - 3600000 * 24,
-        author: "0x1234...deployer",
+        author: "0xF880...416B",
         message: "feat: balanceOf view accessor",
       },
     ],

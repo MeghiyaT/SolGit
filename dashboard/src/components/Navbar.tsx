@@ -5,8 +5,8 @@ import { GitBranch, Shield, Activity, ExternalLink, Copy, Check } from "lucide-r
 
 export function Navbar() {
   const [copied, setCopied] = React.useState(false);
-  const routerAddr = "0x9E73...Router";
-  const registryAddr = "0x5A12...Registry";
+  const routerAddr = "0xCEe1...19EB";
+  const fullRouterAddr = "0xCEe1d6467040c32185dBC60afAc508266b3D19EB";
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -50,13 +50,24 @@ export function Navbar() {
 
           {/* Router Address */}
           <div
-            onClick={() => handleCopy("0x9E73f8F...SolGitRouter")}
+            onClick={() => handleCopy(fullRouterAddr)}
+            title="Click to copy SolGitRouter address"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 cursor-pointer text-zinc-400 transition"
           >
             <Shield className="h-3.5 w-3.5 text-cyan-400" />
             <span className="text-zinc-300 font-mono">Router: {routerAddr}</span>
             {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5 hover:text-zinc-200" />}
           </div>
+
+          {/* MSTScan Explorer Link */}
+          <a
+            href="https://testnet.mstscan.com/address/0xCEe1d6467040c32185dBC60afAc508266b3D19EB"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition font-medium"
+          >
+            Explorer <ExternalLink className="h-3 w-3" />
+          </a>
 
           {/* Faucet Link */}
           <a

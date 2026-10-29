@@ -14,11 +14,11 @@ export function SimulateHack({ onTriggerHack, isHacked, onReset }: SimulateHackP
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
-    { title: "Attacker Exploit", desc: "Attacker calls withdraw(200 tMSTC) exploiting VaultV2 arithmetic underflow bug." },
-    { title: "Invariant Violation", desc: "GuardExecutor runs post-checks: outflow exceeds 100 tMSTC limit (OUTFLOW_CAP)!" },
-    { title: "Soft-Fail Rollback", desc: "Inner frame reverts all exploit state. Router outer frame stays active to record rollback." },
-    { title: "Version Quarantine", desc: "Router sets VaultV2 -> Quarantined, automatically restores VaultV1 Stable." },
-    { title: "AI Watcher Triggered", desc: "Watcher service generates git branch 'solgit-fix-v2' and passes all 36 tests." },
+    { title: "Attacker Exploit Attempt", desc: "Attacker targets VaultV2 withdraw() function on the permanent Diamond contract." },
+    { title: "Watcher Anomaly Detected", desc: "Off-chain Watcher detects abnormal drain and underflow exploit signature in real-time." },
+    { title: "EIP-2535 Guardian Rollback", desc: "Watcher invokes emergencyRollback() with Guardian role, restoring selector to VaultV1 without changing contract address!" },
+    { title: "Quarantine & Safe Operation", desc: "Compromised version is quarantined; connected dApps and users experience zero routing interruption." },
+    { title: "Self-Healing AI Hotfix", desc: "AI Fixer analyzes root-cause, patches the Solidity facet, and passes automated Foundry verification." },
   ];
 
   const handleSimulate = () => {
