@@ -140,6 +140,56 @@ contract VersionRegistryTest is Test {
         registry.getVersion(WITHDRAW_SEL, 99);
     }
 
+    // ── Manual Revert ──
+
+    function test_manualRevert_success() public {
+        registry.pushVersion(WITHDRAW_SEL, implV1);
+        registry.promote(WITHDRAW_SEL, 1);
+        registry.pushVersion(WITHDRAW_SEL, implV2);
+
+        // Currently active is v2
+        assertEq(registry.getActiveVersion(WITHDRAW_SEL).version, 2);
+
+        // Owner manually reverts to v1
+        registry.manualRevert(WITHDRAW_SEL, 1);
+
+        IVersionRegistry.VersionInfo memory active = registry.getActiveVersion(WITHDRAW_SEL);
+        assertEq(active.version, 1);
+        assertEq(active.implementation, implV1);
+    }
+
+    function test_manualRevert_onlyOwner() public {
+        registry.pushVersion(WITHDRAW_SEL, implV1);
+        registry.pushVersion(WITHDRAW_SEL, implV2);
+
+        vm.prank(nonOwner);
+        vm.expectRevert(SolGitErrors.Unauthorized.selector);
+        registry.manualRevert(WITHDRAW_SEL, 1);
+    }
+
+    function test_manualRevert_quarantinedReverts() public {
+        registry.pushVersion(WITHDRAW_SEL, implV1);
+        registry.promote(WITHDRAW_SEL, 1);
+        registry.pushVersion(WITHDRAW_SEL, implV2);
+
+        // Router rolls back and quarantines v2
+        vm.prank(router);
+        registry.rollback(WITHDRAW_SEL, 2, 1);
+
+        // Owner attempts manual revert to quarantined v2 -> must revert
+        vm.expectRevert(
+            abi.encodeWithSelector(SolGitErrors.VersionQuarantined.selector, WITHDRAW_SEL, uint32(2))
+        );
+        registry.manualRevert(WITHDRAW_SEL, 2);
+    }
+
+    function test_manualRevert_invalidVersion_reverts() public {
+        registry.pushVersion(WITHDRAW_SEL, implV1);
+
+        vm.expectRevert(SolGitErrors.InvalidVersion.selector);
+        registry.manualRevert(WITHDRAW_SEL, 99);
+    }
+
     // ── View ──
 
     function test_getVersionHistory() public {

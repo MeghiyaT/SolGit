@@ -2,74 +2,116 @@
 pragma solidity 0.8.24;
 
 import "forge-std/Script.sol";
-import {SolGitRouter} from "../src/core/SolGitRouter.sol";
+import {SolGitDiamond} from "../src/core/SolGitDiamond.sol";
 import {VersionRegistry} from "../src/core/VersionRegistry.sol";
-import {GuardExecutor} from "../src/core/GuardExecutor.sol";
+import {DiamondCutFacet} from "../src/facets/DiamondCutFacet.sol";
+import {DiamondLoupeFacet} from "../src/facets/DiamondLoupeFacet.sol";
+import {OwnershipFacet} from "../src/facets/OwnershipFacet.sol";
+import {SolGitGuardianFacet} from "../src/facets/SolGitGuardianFacet.sol";
 import {VaultV1} from "../src/facets/VaultV1.sol";
-import {VaultV2} from "../src/facets/VaultV2.sol";
-import {Attacker} from "../src/test-helpers/Attacker.sol";
+import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
+import {IDiamondLoupe} from "../src/interfaces/IDiamondLoupe.sol";
+import {ISolGitGuardian} from "../src/interfaces/ISolGitGuardian.sol";
 
-/// @title Deploy — Deploy SolGit to MST Testnet
-/// @notice Deploys all contracts, wires them together, and pushes initial versions
+/// @title Deploy — Deploy SolGit EIP-2535 Platform Contracts to Network
 contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
+        address guardianAddress = vm.envOr("GUARDIAN_ADDRESS", deployer);
 
         console.log("Deployer:", deployer);
-        console.log("Balance:", deployer.balance);
+        console.log("Guardian:", guardianAddress);
 
         vm.startBroadcast(deployerPrivateKey);
 
-        // 1. Deploy infrastructure
+        // 1. Deploy VersionRegistry
         VersionRegistry registry = new VersionRegistry(deployer);
         console.log("VersionRegistry:", address(registry));
 
-        GuardExecutor guard = new GuardExecutor();
-        console.log("GuardExecutor:", address(guard));
+        // 2. Deploy Diamond Core Facets
+        DiamondCutFacet cutFacet = new DiamondCutFacet();
+        console.log("DiamondCutFacet:", address(cutFacet));
 
-        SolGitRouter router = new SolGitRouter(address(registry), address(guard), deployer);
-        console.log("SolGitRouter:", address(router));
+        DiamondLoupeFacet loupeFacet = new DiamondLoupeFacet();
+        console.log("DiamondLoupeFacet:", address(loupeFacet));
 
-        // Wire registry to router
-        registry.setRouter(address(router));
+        OwnershipFacet ownerFacet = new OwnershipFacet();
+        console.log("OwnershipFacet:", address(ownerFacet));
 
-        // 2. Deploy facets
+        SolGitGuardianFacet guardianFacet = new SolGitGuardianFacet();
+        console.log("SolGitGuardianFacet:", address(guardianFacet));
+
+        // 3. Deploy Initial Application Facet (VaultV1)
         VaultV1 vaultV1 = new VaultV1();
         console.log("VaultV1:", address(vaultV1));
 
-        VaultV2 vaultV2 = new VaultV2();
-        console.log("VaultV2:", address(vaultV2));
+        // 4. Construct initial diamond cuts
+        IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](5);
 
-        // 3. Deploy attacker (for demo)
-        Attacker attackerContract = new Attacker(address(router));
-        console.log("Attacker:", address(attackerContract));
+        bytes4[] memory cutSelectors = new bytes4[](1);
+        cutSelectors[0] = IDiamondCut.diamondCut.selector;
+        cuts[0] = IDiamondCut.FacetCut({
+            facetAddress: address(cutFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: cutSelectors
+        });
 
-        // 4. Push V1 for all selectors and promote to Stable
-        bytes4 depositSel = bytes4(keccak256("deposit()"));
-        bytes4 withdrawSel = bytes4(keccak256("withdraw(uint256)"));
-        bytes4 transferSel = bytes4(keccak256("transfer(address,uint256)"));
-        bytes4 balanceSel = bytes4(keccak256("balanceOf(address)"));
+        bytes4[] memory loupeSelectors = new bytes4[](4);
+        loupeSelectors[0] = IDiamondLoupe.facets.selector;
+        loupeSelectors[1] = IDiamondLoupe.facetFunctionSelectors.selector;
+        loupeSelectors[2] = IDiamondLoupe.facetAddresses.selector;
+        loupeSelectors[3] = IDiamondLoupe.facetAddress.selector;
+        cuts[1] = IDiamondCut.FacetCut({
+            facetAddress: address(loupeFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: loupeSelectors
+        });
 
-        registry.pushVersion(depositSel, address(vaultV1));
-        registry.promote(depositSel, 1);
+        bytes4[] memory ownerSelectors = new bytes4[](2);
+        ownerSelectors[0] = OwnershipFacet.owner.selector;
+        ownerSelectors[1] = OwnershipFacet.transferOwnership.selector;
+        cuts[2] = IDiamondCut.FacetCut({
+            facetAddress: address(ownerFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: ownerSelectors
+        });
 
-        registry.pushVersion(withdrawSel, address(vaultV1));
-        registry.promote(withdrawSel, 1);
+        bytes4[] memory guardianSelectors = new bytes4[](5);
+        guardianSelectors[0] = ISolGitGuardian.guardian.selector;
+        guardianSelectors[1] = ISolGitGuardian.setGuardian.selector;
+        guardianSelectors[2] = ISolGitGuardian.registerStableFacet.selector;
+        guardianSelectors[3] = ISolGitGuardian.isRegisteredStableFacet.selector;
+        guardianSelectors[4] = ISolGitGuardian.emergencyRollback.selector;
+        cuts[3] = IDiamondCut.FacetCut({
+            facetAddress: address(guardianFacet),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: guardianSelectors
+        });
 
-        registry.pushVersion(transferSel, address(vaultV1));
-        registry.promote(transferSel, 1);
+        bytes4[] memory vaultSelectors = new bytes4[](4);
+        vaultSelectors[0] = VaultV1.deposit.selector;
+        vaultSelectors[1] = VaultV1.withdraw.selector;
+        vaultSelectors[2] = VaultV1.transfer.selector;
+        vaultSelectors[3] = VaultV1.balanceOf.selector;
+        cuts[4] = IDiamondCut.FacetCut({
+            facetAddress: address(vaultV1),
+            action: IDiamondCut.FacetCutAction.Add,
+            functionSelectors: vaultSelectors
+        });
 
-        registry.pushVersion(balanceSel, address(vaultV1));
-        registry.promote(balanceSel, 1);
+        // 5. Deploy SolGit Diamond Proxy
+        SolGitDiamond diamond = new SolGitDiamond(deployer, guardianAddress, cuts, address(0), "");
+        console.log("SolGitDiamond (Permanent Address):", address(diamond));
 
-        // 5. Push V2 for withdraw (Active, NOT promoted — the buggy version)
-        registry.pushVersion(withdrawSel, address(vaultV2));
+        // Register VaultV1 as trusted stable facet
+        ISolGitGuardian(address(diamond)).registerStableFacet(address(vaultV1), true);
 
-        console.log("---");
-        console.log("Deployment complete!");
-        console.log("Withdraw is now on V2 (buggy, Active)");
-        console.log("All other selectors on V1 (Stable)");
+        // Register in VersionRegistry
+        for (uint256 i = 0; i < vaultSelectors.length; i++) {
+            registry.pushVersion(vaultSelectors[i], address(vaultV1));
+            registry.promote(vaultSelectors[i], 1);
+        }
 
         vm.stopBroadcast();
     }

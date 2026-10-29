@@ -40,6 +40,12 @@ interface IVersionRegistry {
         uint32 activeVersion
     );
 
+    event VersionManuallyReverted(
+        bytes4 indexed selector,
+        uint32 fromVersion,
+        uint32 toVersion
+    );
+
     // ──────────────────────────────────────────────
     //  Functions
     // ──────────────────────────────────────────────
@@ -60,6 +66,11 @@ interface IVersionRegistry {
     /// @param badVer The version to quarantine
     /// @param goodVer The version to restore (must be Stable)
     function rollback(bytes4 selector, uint32 badVer, uint32 goodVer) external;
+
+    /// @notice Manually revert a selector to a specified version. Owner-only.
+    /// @param selector The function selector
+    /// @param targetVersion The version number to revert to (cannot be Quarantined)
+    function manualRevert(bytes4 selector, uint32 targetVersion) external;
 
     /// @notice Get the currently active version info for a selector
     function getActiveVersion(bytes4 selector) external view returns (VersionInfo memory);

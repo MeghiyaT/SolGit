@@ -132,6 +132,22 @@ contract VersionRegistry is IVersionRegistry {
         emit VersionRolledBack(selector, badVer, goodVer);
     }
 
+    /// @inheritdoc IVersionRegistry
+    function manualRevert(bytes4 selector, uint32 targetVersion) external onlyOwner {
+        uint256 targetIndex = _versionIndex(selector, targetVersion);
+        VersionInfo storage targetInfo = _history[selector][targetIndex];
+
+        // Cannot revert to a quarantined version
+        if (targetInfo.status == VersionStatus.Quarantined) {
+            revert SolGitErrors.VersionQuarantined(selector, targetVersion);
+        }
+
+        uint32 currentVer = _history[selector][_activeIndex[selector]].version;
+        _activeIndex[selector] = targetIndex;
+
+        emit VersionManuallyReverted(selector, currentVer, targetVersion);
+    }
+
     // ──────────────────────────────────────────────
     //  View Functions
     // ──────────────────────────────────────────────
