@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   GitPullRequest,
   GitMerge,
   GitCommit,
-  GitBranch,
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
@@ -17,32 +16,17 @@ import {
   ChevronUp,
   ChevronRight,
   Terminal,
-  Clock,
   FileCode,
-  Code2,
-  Cpu,
   MessageSquare,
-  Filter,
   Search,
   Bot,
   ThumbsUp,
-  Columns,
-  Layers,
-  Lock,
   ArrowLeft,
   CheckCheck,
   RotateCcw,
-  FileCheck,
-  Tag,
-  Maximize2,
-  Minimize2,
 } from "lucide-react";
 import {
   CONTRACTS,
-  INITIAL_PR,
-  V2_BUGGY_CODE,
-  V2_FIXED_CODE,
-  type PullRequestItem,
   type PullRequestCheck,
 } from "../../lib/data";
 
@@ -256,7 +240,7 @@ const CI_CHECKS: CiCheckDetail[] = [
       "Action: FacetCutAction.Replace (1)",
       "Selector: 0x2e1a7d4d (withdraw(uint256))",
       "Current Facet: 0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7 (VaultV2 - Quarantined)",
-      "Replacement Facet: 0xb1C889707d426A7A386870A03bc70d1b0697599 (VaultV2Fixed)",
+      "Replacement Facet: 0xb1C889707d426A7A386870A03bc70d1b06975990 (VaultV2Fixed)",
       "Storage Slot Verification: VaultStorage slot 0x36089... uncorrupted",
       "Introspection check: No selector collisions, no orphaned function pointers.",
       "Result: Safe for Diamond Proxy execution.",
@@ -366,6 +350,18 @@ export function PullRequestsTab({
   const [listSearch, setListSearch] = useState("is:pr is:open");
   const [listStatusFilter, setListStatusFilter] = useState<"all" | "open" | "merged">("all");
 
+  const mergeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up merge timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (mergeTimeoutRef.current) {
+        clearTimeout(mergeTimeoutRef.current);
+        mergeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Format Helper
   const triggerToast = useCallback(
     (msg: string) => {
@@ -421,10 +417,14 @@ export function PullRequestsTab({
 
   // Perform Merge Action
   const handleExecuteMerge = () => {
+    if (mergeTimeoutRef.current) {
+      clearTimeout(mergeTimeoutRef.current);
+    }
     setIsMergingLocal(true);
     triggerToast("Broadcasting Diamond Cut transaction to MST Blockchain...");
 
-    setTimeout(() => {
+    mergeTimeoutRef.current = setTimeout(() => {
+      mergeTimeoutRef.current = null;
       setIsMergingLocal(false);
       setIsConfirmingMerge(false);
       onMergeFix();
@@ -865,7 +865,7 @@ export function PullRequestsTab({
             >
               <MessageSquare className="w-4 h-4 text-emerald-400" />
               <span>Conversation</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-white/10 text-zinc-300">
+              <span className="px-1.5 py-[1px] rounded-full text-[11px] bg-white/10 text-zinc-300">
                 3
               </span>
             </button>
@@ -880,7 +880,7 @@ export function PullRequestsTab({
             >
               <GitCommit className="w-4 h-4 text-cyan-400" />
               <span>Commits</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-white/10 text-zinc-300">
+              <span className="px-1.5 py-[1px] rounded-full text-[11px] bg-white/10 text-zinc-300">
                 1
               </span>
             </button>
@@ -895,7 +895,7 @@ export function PullRequestsTab({
             >
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
               <span>Checks</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+              <span className="px-1.5 py-[1px] rounded-full text-[11px] bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
                 4 passed
               </span>
             </button>
@@ -910,7 +910,7 @@ export function PullRequestsTab({
             >
               <FileCode className="w-4 h-4 text-amber-400" />
               <span>Files changed</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[11px] bg-white/10 text-zinc-300 font-mono">
+              <span className="px-1.5 py-[1px] rounded-full text-[11px] bg-white/10 text-zinc-300 font-mono">
                 1 <span className="text-emerald-400">+12</span>{" "}
                 <span className="text-rose-400">-8</span>
               </span>
@@ -1176,7 +1176,7 @@ export function PullRequestsTab({
                         <div>
                           <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                             All checks have passed
-                            <span className="text-[11px] font-normal text-emerald-400 bg-emerald-950/60 px-2 py-0.2 rounded border border-emerald-800/40">
+                            <span className="text-[11px] font-normal text-emerald-400 bg-emerald-950/60 px-2 py-[1px] rounded border border-emerald-800/40">
                               4/4 successful
                             </span>
                           </div>
@@ -1681,7 +1681,7 @@ export function PullRequestsTab({
                           <div>
                             <span className="text-zinc-500">Promoted Implementation: </span>
                             <span className="text-emerald-300">
-                              0xb1C889707d426A7A386870A03bc70d1b0697599 (V3)
+                              0xb1C889707d426A7A386870A03bc70d1b06975990 (V3)
                             </span>
                           </div>
                         </div>

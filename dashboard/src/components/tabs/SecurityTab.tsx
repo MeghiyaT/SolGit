@@ -17,28 +17,16 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Activity,
   Lock,
-  Unlock,
-  FileCode,
-  GitPullRequest,
   Zap,
   Search,
-  Eye,
   ChevronDown,
   ChevronUp,
-  Info,
-  Sparkles,
   Clock,
   Flame,
   Bug,
-  Filter,
-  CheckCheck,
   Layers,
-  Database,
-  ArrowUpRight,
   RefreshCw,
-  Sliders,
   Code2,
 } from "lucide-react";
 import {
@@ -313,9 +301,20 @@ export function SecurityTab({
   const [expandedInvariantId, setExpandedInvariantId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("ALL");
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [simulationSpeed, setSimulationSpeed] = useState<"fast" | "normal">("normal");
+
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up simulation interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   // Keep currentStep in sync when isHacked prop changes externally
   if (isHacked !== prevIsHacked) {
@@ -404,6 +403,11 @@ export function SecurityTab({
   const handleSimulateAttack = () => {
     if (running || isHacked) return;
 
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
     setRunning(true);
     setCurrentStep(1);
 
@@ -416,7 +420,7 @@ export function SecurityTab({
     const stepDelay = simulationSpeed === "fast" ? 450 : 850;
 
     let step = 1;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       step += 1;
       if (step === 2) {
         setCurrentStep(2);
@@ -443,7 +447,10 @@ export function SecurityTab({
           `Selector 0x2e1a7d4d pointed back to VaultV1 (0xF717...53f8). Version 2 quarantined.`
         );
       } else if (step >= 5) {
-        clearInterval(interval);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
         setCurrentStep(5);
         setRunning(false);
         addTelemetryLog(
@@ -463,6 +470,10 @@ export function SecurityTab({
   // Reset Simulation
   // ─────────────────────────────────────────────────────────
   const handleResetSandbox = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     setRunning(false);
     setCurrentStep(0);
     setSelectedStageDetail(null);
@@ -766,7 +777,6 @@ export function SecurityTab({
             {PIPELINE_STAGES.map((stage) => {
               const isCompleted = currentStep > stage.step || (isHacked && currentStep === 5);
               const isCurrent = currentStep === stage.step && running;
-              const isPending = currentStep < stage.step && !isHacked;
 
               return (
                 <div
@@ -928,7 +938,7 @@ export function SecurityTab({
               <div key={log.id} className="flex items-start gap-2 leading-relaxed">
                 <span className="text-zinc-600 text-[10px] shrink-0">{log.timestamp}</span>
                 <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded font-bold shrink-0 ${
+                  className={`text-[10px] px-1.5 py-[1px] rounded font-bold shrink-0 ${
                     log.level === "error"
                       ? "bg-rose-950 text-rose-400 border border-rose-900/60"
                       : log.level === "warn"

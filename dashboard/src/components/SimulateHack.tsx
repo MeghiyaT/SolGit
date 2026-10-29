@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Skull, Shield, ArrowRight, CheckCircle2, AlertOctagon, RotateCcw, Cpu } from "lucide-react";
+import { Skull, CheckCircle2, AlertOctagon, RotateCcw, Cpu } from "lucide-react";
 
 interface SimulateHackProps {
   onTriggerHack: () => void;

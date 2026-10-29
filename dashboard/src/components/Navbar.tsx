@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { GitBranch, Shield, Activity, ExternalLink, Copy, Check } from "lucide-react";
+import { GitBranch, Shield, ExternalLink, Copy, Check } from "lucide-react";
 
 export function Navbar() {
   const [copied, setCopied] = React.useState(false);

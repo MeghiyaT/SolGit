@@ -63,44 +63,46 @@ export function Toast({ notification, onClose }: ToastProps) {
   const remainingTimeRef = useRef<number>(3500);
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const prevNotifIdRef = useRef<string | undefined>(undefined);
 
   const duration = notification?.duration ?? 3500;
+  const notifId = notification?.id;
 
   // Set up auto-dismiss timer with pause on hover
   useEffect(() => {
     if (!notification) return;
 
-    remainingTimeRef.current = notification.duration ?? 3500;
-    startTimeRef.current = Date.now();
-
-    const startTimer = () => {
-      timerRef.current = setTimeout(() => {
-        onClose();
-      }, remainingTimeRef.current);
-    };
-
-    if (!isPaused) {
-      startTimer();
+    // Only reset remaining time when notification identity changes, NOT on pause toggle
+    if (notifId !== prevNotifIdRef.current) {
+      prevNotifIdRef.current = notifId;
+      remainingTimeRef.current = duration;
     }
 
+    if (isPaused) return;
+
+    startTimeRef.current = Date.now();
+    const timer = setTimeout(() => {
+      onClose();
+    }, remainingTimeRef.current);
+    timerRef.current = timer;
+
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
+      clearTimeout(timer);
+      timerRef.current = null;
     };
-  }, [notification, isPaused, onClose]);
+  }, [notification, notifId, duration, isPaused, onClose]);
 
   const handleMouseEnter = () => {
     setIsPaused(true);
     if (timerRef.current) {
       clearTimeout(timerRef.current);
-      const elapsed = Date.now() - startTimeRef.current;
-      remainingTimeRef.current = Math.max(200, remainingTimeRef.current - elapsed);
+      timerRef.current = null;
     }
+    const elapsed = Date.now() - startTimeRef.current;
+    remainingTimeRef.current = Math.max(200, remainingTimeRef.current - elapsed);
   };
 
   const handleMouseLeave = () => {
-    startTimeRef.current = Date.now();
     setIsPaused(false);
   };
 

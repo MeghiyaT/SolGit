@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Code2, GitCompare, Check, AlertTriangle, ShieldCheck } from "lucide-react";
+import { GitCompare, AlertTriangle, ShieldCheck } from "lucide-react";
 import { V1_CODE, V2_BUGGY_CODE, V2_FIXED_CODE } from "../lib/data";
 
 export function CodeDiff() {

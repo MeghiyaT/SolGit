@@ -108,7 +108,7 @@ export function TabNav({
               {/* Counter or Alert Badge */}
               {tab.badge !== undefined && (
                 <span
-                  className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono transition ${
+                  className={`px-1.5 py-[1px] rounded-full text-[10px] font-mono transition ${
                     tab.hasAlert
                       ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold animate-pulse"
                       : isActive

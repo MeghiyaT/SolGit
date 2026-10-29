@@ -73,8 +73,7 @@ export function VersionTree({
 
         {/* Visual Git Commit Tree */}
         <div className="relative pl-6 space-y-6 before:absolute before:left-[17px] before:top-3 before:bottom-3 before:w-0.5 before:bg-gradient-to-b before:from-emerald-500 before:via-cyan-500 before:to-zinc-700">
-          {selectedSelector.history.map((commit, idx) => {
-            const isLatest = idx === selectedSelector.history.length - 1;
+          {selectedSelector.history.map((commit) => {
             const isStable = commit.status === "Stable";
             const isQuarantined = commit.status === "Quarantined";
 

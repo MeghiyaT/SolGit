@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import {
   Cpu,
   Layers,
@@ -148,6 +148,17 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
   const [selectedSelectorForQuery, setSelectedSelectorForQuery] = useState<string>("0x2e1a7d4d");
   const [isSimulatingRpc, setIsSimulatingRpc] = useState(false);
   const [simulatedExecutionTime, setSimulatedExecutionTime] = useState<number | null>(null);
+  const rpcTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up simulated RPC timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (rpcTimeoutRef.current) {
+        clearTimeout(rpcTimeoutRef.current);
+        rpcTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Storage Layout Active View Tab
   const [storageView, setStorageView] = useState<"diamond" | "vault" | "guardian">("diamond");
@@ -422,14 +433,26 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
         const matched = enrichedSelectors.find(
           (s) => s.selector.toLowerCase() === selectedSelectorForQuery.toLowerCase()
         );
-        const resolvedAddress = matched ? matched.targetFacet : CONTRACTS.vaultV1;
+        const resolvedAddress = matched
+          ? matched.targetFacet
+          : selectedSelectorForQuery.toLowerCase() === "0x4e6b5270"
+          ? CONTRACTS.guardian
+          : "0x0000000000000000000000000000000000000000";
         return JSON.stringify(
           {
             selector: selectedSelectorForQuery,
             facetAddress: resolvedAddress,
-            matchedFunction: matched ? matched.signature : "unknown",
-            activeVersion: matched ? matched.currentVersion : 1,
-            lifecycleStatus: matched ? matched.status : "Stable",
+            matchedFunction: matched
+              ? matched.signature
+              : selectedSelectorForQuery.toLowerCase() === "0x4e6b5270"
+              ? "emergencyRollback(bytes4,uint256)"
+              : "unknown",
+            activeVersion: matched ? matched.currentVersion : 0,
+            lifecycleStatus: matched
+              ? matched.status
+              : selectedSelectorForQuery.toLowerCase() === "0x4e6b5270"
+              ? "Stable"
+              : "Unregistered",
           },
           null,
           2
@@ -440,9 +463,13 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
 
   // Handle Simulated RPC Execution click
   const handleSimulateRpc = () => {
+    if (rpcTimeoutRef.current) {
+      clearTimeout(rpcTimeoutRef.current);
+    }
     setIsSimulatingRpc(true);
     setSimulatedExecutionTime(null);
-    setTimeout(() => {
+    rpcTimeoutRef.current = setTimeout(() => {
+      rpcTimeoutRef.current = null;
       setIsSimulatingRpc(false);
       setSimulatedExecutionTime(Math.floor(180 + Math.random() * 80));
       if (onActionToast) {
@@ -737,7 +764,7 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
                   >
                     <span className="capitalize">{filterVal}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      className={`text-[10px] px-1.5 py-[1px] rounded-full font-mono ${
                         filterVal === "Quarantined" && count > 0
                           ? "bg-rose-500/20 text-rose-300 font-bold"
                           : isActive
@@ -1035,7 +1062,7 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
                                             </span>
 
                                             <span
-                                              className={`px-2 py-0.2 rounded text-[10px] uppercase font-bold ${
+                                              className={`px-2 py-[1px] rounded text-[10px] uppercase font-bold ${
                                                 isCommitQuarantined
                                                   ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                                                   : commit.status === "Stable"
@@ -1047,13 +1074,13 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
                                             </span>
 
                                             {isCurrent && (
-                                              <span className="px-2 py-0.2 rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold">
+                                              <span className="px-2 py-[1px] rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-semibold">
                                                 ACTIVE ROUTING
                                               </span>
                                             )}
 
                                             {isStable && (
-                                              <span className="px-2 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                                              <span className="px-2 py-[1px] rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
                                                 LAST STABLE (FALLBACK TARGET)
                                               </span>
                                             )}

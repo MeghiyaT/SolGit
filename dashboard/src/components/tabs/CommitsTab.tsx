@@ -34,7 +34,7 @@ import {
 
 export interface CommitsTabProps {
   selectors: SelectorFeature[];
-  onOpenDiff?: (selector: string, fromVersion?: number, toVersion?: number) => void;
+  onOpenDiff?: (selector: string, fromVersion?: number, toVersion?: number, openInPR?: boolean) => void;
   onCopyToast?: (text: string) => void;
 }
 
@@ -439,16 +439,16 @@ export function CommitsTab({
 
   // Handle Diff Toggle / Trigger
   const handleToggleDiff = (commit: EnrichedCommit) => {
+    // Toggle inline view locally without switching tabs
+    setExpandedCommitId((prev) => (prev === commit.id ? null : commit.id));
+  };
+
+  const handleInspectInPR = (commit: EnrichedCommit) => {
     const fromVer = commit.prevVersion ?? (commit.version > 1 ? commit.version - 1 : undefined);
     const toVer = commit.version;
-
-    // Trigger parent callback
     if (onOpenDiff) {
-      onOpenDiff(commit.selector, fromVer, toVer);
+      onOpenDiff(commit.selector, fromVer, toVer, true);
     }
-
-    // Toggle inline view
-    setExpandedCommitId((prev) => (prev === commit.id ? null : commit.id));
   };
 
   return (
@@ -606,7 +606,7 @@ export function CommitsTab({
                     ({feat.selector})
                   </span>
                   <span
-                    className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-medium ${
+                    className={`px-1.5 py-[1px] rounded text-[10px] font-mono font-medium ${
                       isQuarantined
                         ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
                         : "bg-white/[0.06] text-zinc-300"
@@ -804,7 +804,7 @@ export function CommitsTab({
                                 {commit.author}
                               </span>
                               {isAIWatcher && (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
+                                <span className="text-[10px] px-1.5 py-[1px] rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono">
                                   AI Guardian
                                 </span>
                               )}
@@ -929,6 +929,7 @@ export function CommitsTab({
                               }
                               onOpenModal={() => setModalDiffCommit(commit)}
                               onCopy={handleCopy}
+                              onInspectInPR={() => handleInspectInPR(commit)}
                             />
                           </div>
                         )}
@@ -954,6 +955,7 @@ export function CommitsTab({
           }
           onClose={() => setModalDiffCommit(null)}
           onCopy={handleCopy}
+          onInspectInPR={() => handleInspectInPR(modalDiffCommit)}
         />
       )}
     </div>
@@ -969,6 +971,7 @@ interface InlineDiffInspectorProps {
   onToggleDiffMode: () => void;
   onOpenModal: () => void;
   onCopy: (text: string, label: string, key: string) => void;
+  onInspectInPR?: () => void;
 }
 
 function InlineDiffInspector({
@@ -977,6 +980,7 @@ function InlineDiffInspector({
   onToggleDiffMode,
   onOpenModal,
   onCopy,
+  onInspectInPR,
 }: InlineDiffInspectorProps) {
   const fromVer = commit.prevVersion ?? (commit.version > 1 ? commit.version - 1 : undefined);
   const diffData = useMemo(
@@ -1002,6 +1006,18 @@ function InlineDiffInspector({
 
         {/* Right: Stats & Controls */}
         <div className="flex items-center gap-2">
+          {/* Inspect in PR #42 */}
+          {onInspectInPR && (
+            <button
+              type="button"
+              onClick={onInspectInPR}
+              className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-medium border border-emerald-500/30 transition flex items-center gap-1 cursor-pointer"
+              title="Inspect in PR #42"
+            >
+              <span>Inspect in PR #42 →</span>
+            </button>
+          )}
+
           {/* Additions / Deletions Pills */}
           <div className="flex items-center gap-1 text-[11px] font-mono">
             <span className="text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40">
@@ -1220,6 +1236,7 @@ interface ModalDiffInspectorProps {
   onToggleDiffMode: () => void;
   onClose: () => void;
   onCopy: (text: string, label: string, key: string) => void;
+  onInspectInPR?: () => void;
 }
 
 function ModalDiffInspector({
@@ -1228,6 +1245,7 @@ function ModalDiffInspector({
   onToggleDiffMode,
   onClose,
   onCopy,
+  onInspectInPR,
 }: ModalDiffInspectorProps) {
   const fromVer = commit.prevVersion ?? (commit.version > 1 ? commit.version - 1 : undefined);
   const diffData = useMemo(
@@ -1271,6 +1289,20 @@ function ModalDiffInspector({
 
           {/* Action buttons */}
           <div className="flex items-center gap-2">
+            {onInspectInPR && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onInspectInPR();
+                }}
+                className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-medium border border-emerald-500/30 transition flex items-center gap-1 cursor-pointer"
+                title="Inspect in PR #42"
+              >
+                <span>Inspect in PR #42 →</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onToggleDiffMode}

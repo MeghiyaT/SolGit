@@ -219,7 +219,7 @@ export default function Home() {
         }
       }
 
-      // 3. Number keys 1-5: quick tab switching
+      // 3. Option+1-5: quick tab switching (⌥1 through ⌥5)
       // Check that the user is not actively typing in an input or contenteditable element
       const activeEl = document.activeElement;
       const isInputFocused =
@@ -229,33 +229,22 @@ export default function Home() {
           activeEl.tagName === "SELECT" ||
           (activeEl as HTMLElement).isContentEditable);
 
-      if (!isPaletteOpen && !isInputFocused) {
-        // Plain 1-5 or Option+1-5
-        if ((!e.metaKey && !e.ctrlKey) || e.altKey) {
-          switch (e.key) {
-            case "1":
-              e.preventDefault();
-              setActiveTab("code");
-              break;
-            case "2":
-              e.preventDefault();
-              setActiveTab("commits");
-              break;
-            case "3":
-              e.preventDefault();
-              setActiveTab("pulls");
-              break;
-            case "4":
-              e.preventDefault();
-              setActiveTab("security");
-              break;
-            case "5":
-              e.preventDefault();
-              setActiveTab("loupe");
-              break;
-            default:
-              break;
-          }
+      if (!isPaletteOpen && !isInputFocused && e.altKey && !e.metaKey && !e.ctrlKey) {
+        if (e.code === "Digit1" || e.key === "1" || e.key === "¡") {
+          e.preventDefault();
+          setActiveTab("code");
+        } else if (e.code === "Digit2" || e.key === "2" || e.key === "™") {
+          e.preventDefault();
+          setActiveTab("commits");
+        } else if (e.code === "Digit3" || e.key === "3" || e.key === "£") {
+          e.preventDefault();
+          setActiveTab("pulls");
+        } else if (e.code === "Digit4" || e.key === "4" || e.key === "¢") {
+          e.preventDefault();
+          setActiveTab("security");
+        } else if (e.code === "Digit5" || e.key === "5" || e.key === "∞") {
+          e.preventDefault();
+          setActiveTab("loupe");
         }
       }
     };
@@ -310,14 +299,16 @@ export default function Home() {
           {activeTab === "commits" && (
             <CommitsTab
               selectors={selectors}
-              onOpenDiff={(selector, fromVersion, toVersion) => {
-                setActiveTab("pulls");
-                showToast(
-                  "Pull Request Diff",
-                  `Comparing ${selector} v${fromVersion ?? 2} -> v${toVersion ?? 3}`,
-                  "info",
-                  3500
-                );
+              onOpenDiff={(selector, fromVersion, toVersion, openInPR) => {
+                if (openInPR) {
+                  setActiveTab("pulls");
+                  showToast(
+                    "Pull Request Diff",
+                    `Comparing ${selector} v${fromVersion ?? 2} -> v${toVersion ?? 3}`,
+                    "info",
+                    3500
+                  );
+                }
               }}
               onCopyToast={handleCopyToast}
             />

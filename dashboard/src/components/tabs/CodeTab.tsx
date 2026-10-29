@@ -387,7 +387,7 @@ export function CodeTab({
                       <div className="flex items-center justify-between">
                         <span className="font-medium font-mono">{b.name}</span>
                         {b.isDefault && (
-                          <span className="text-[9px] px-1.5 py-0.2 bg-zinc-800 text-zinc-400 rounded">
+                          <span className="text-[9px] px-1.5 py-[1px] bg-zinc-800 text-zinc-400 rounded">
                             default
                           </span>
                         )}
@@ -719,7 +719,7 @@ export function CodeTab({
                   {/* Contextual Status Badges for Key Files */}
                   {file.name === "VaultV2.sol" && (
                     <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded font-semibold ${
+                      className={`text-[9px] px-1.5 py-[1px] rounded font-semibold ${
                         isHacked
                           ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
                           : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
@@ -729,17 +729,17 @@ export function CodeTab({
                     </span>
                   )}
                   {file.name === "VaultV2Fixed.sol" && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
+                    <span className="text-[9px] px-1.5 py-[1px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
                       AI Patched
                     </span>
                   )}
                   {file.name === "SolGitDiamond.sol" && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-300 font-mono hidden md:inline">
+                    <span className="text-[9px] px-1.5 py-[1px] rounded bg-cyan-500/10 text-cyan-300 font-mono hidden md:inline">
                       Diamond Core
                     </span>
                   )}
                   {file.name === "VersionRegistry.sol" && (
-                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/10 text-purple-300 font-mono hidden md:inline">
+                    <span className="text-[9px] px-1.5 py-[1px] rounded bg-purple-500/10 text-purple-300 font-mono hidden md:inline">
                       Registry
                     </span>
                   )}
@@ -779,10 +779,11 @@ export function CodeTab({
                   <button
                     type="button"
                     onClick={() => {
-                      if (onCopyToast) onCopyToast("Closed file preview");
+                      setIsViewerMinimized(true);
+                      if (onCopyToast) onCopyToast("Minimized file preview");
                     }}
                     className="macos-traffic-dot macos-traffic-close cursor-pointer"
-                    title="Close"
+                    title="Close / Minimize"
                   />
                   <button
                     type="button"
@@ -852,8 +853,13 @@ export function CodeTab({
 
             {/* Code Body */}
             {isViewerMinimized ? (
-              <div className="p-6 text-center text-xs text-zinc-500 bg-[#0d1117]">
-                <span>Code window minimized. Click the yellow traffic light or expand button to view code.</span>
+              <div
+                onClick={() => setIsViewerMinimized(false)}
+                className="p-6 text-center text-xs text-zinc-400 hover:text-zinc-200 bg-[#0d1117] hover:bg-white/[0.02] cursor-pointer transition flex items-center justify-center gap-2 select-none group"
+                title="Click to restore code view"
+              >
+                <Code className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
+                <span>Code window minimized. Click here or yellow traffic light to restore view.</span>
               </div>
             ) : (
               <div
@@ -898,7 +904,7 @@ export function CodeTab({
 
                         {/* Inline Hazard Callout */}
                         {isHazard && (
-                          <span className="ml-3 px-1.5 py-0.2 rounded bg-rose-500/30 text-rose-300 text-[10px] font-sans font-semibold inline-flex items-center gap-1">
+                          <span className="ml-3 px-1.5 py-[1px] rounded bg-rose-500/30 text-rose-300 text-[10px] font-sans font-semibold inline-flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3 text-rose-400" />
                             CRITICAL HAZARD: Unchecked underflow enables balance draining
                           </span>
@@ -906,7 +912,7 @@ export function CodeTab({
 
                         {/* Inline Fix Callout */}
                         {isFix && (
-                          <span className="ml-3 px-1.5 py-0.2 rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-sans font-semibold inline-flex items-center gap-1">
+                          <span className="ml-3 px-1.5 py-[1px] rounded bg-emerald-500/30 text-emerald-300 text-[10px] font-sans font-semibold inline-flex items-center gap-1">
                             <ShieldCheck className="w-3 h-3 text-emerald-400" />
                             AI DEFENSE FIX: Enforces Checks-Effects-Interactions (CEI)
                           </span>
@@ -1162,7 +1168,7 @@ export function CodeTab({
             <div className="p-3 rounded-lg bg-[#0d1117] border border-white/10 space-y-1.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-white">v1.0.0-stable</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 font-mono">
+                <span className="text-[10px] px-1.5 py-[1px] rounded bg-emerald-500/20 text-emerald-400 font-mono">
                   Latest
                 </span>
               </div>
