@@ -7,7 +7,6 @@ import {
   Lock,
   Globe,
   Upload,
-  FileCode,
   Shield,
   Layers,
   CheckCircle2,

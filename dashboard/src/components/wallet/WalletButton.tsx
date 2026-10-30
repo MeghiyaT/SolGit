@@ -21,10 +21,8 @@ export interface WalletButtonProps {
 
 export function WalletButton({ onNotify }: WalletButtonProps) {
   const {
-    address,
     checksumAddress,
     balance,
-    chainId,
     isConnecting,
     isConnected,
     isWrongNetwork,

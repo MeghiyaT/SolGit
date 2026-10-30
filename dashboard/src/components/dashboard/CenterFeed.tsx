@@ -9,7 +9,6 @@ import {
   Shield,
   Layers,
   Sparkles,
-  GitCommit,
   AlertTriangle,
 } from "lucide-react";
 import { formatAddress } from "../../lib/mstChain";

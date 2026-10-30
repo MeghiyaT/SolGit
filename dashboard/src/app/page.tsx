@@ -326,7 +326,7 @@ export default function Home() {
           address={wallet.checksumAddress}
           pullRequests={pullRequests}
           recentEvents={events}
-          onNavigatePR={(_prId) => {
+          onNavigatePR={() => {
             setCurrentView("repository");
             setActiveTab("pulls");
           }}
