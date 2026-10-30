@@ -5,6 +5,7 @@ export type ViewType = 'dashboard' | 'repository';
 export interface Web3WalletState {
   address: `0x${string}` | null;
   checksumAddress: string | null;
+  nickname: string | null;
   balance: string | null;
   chainId: number | null;
   isConnecting: boolean;

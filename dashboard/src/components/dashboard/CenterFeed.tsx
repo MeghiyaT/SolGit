@@ -16,6 +16,7 @@ import type { PullRequestItem, RollbackEvent } from "../../lib/types";
 
 export interface CenterFeedProps {
   address: string | null;
+  nickname?: string | null;
   pullRequests: PullRequestItem[];
   recentEvents: RollbackEvent[];
   onSelectRepo: (repoId: string) => void;
@@ -26,6 +27,7 @@ export interface CenterFeedProps {
 
 export function CenterFeed({
   address,
+  nickname,
   pullRequests,
   recentEvents,
   onSelectRepo,
@@ -37,9 +39,9 @@ export function CenterFeed({
     const hour = new Date().getHours();
     const timeGreeting =
       hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-    const name = address ? formatAddress(address, 6, 4) : "Explorer";
+    const name = nickname || (address ? formatAddress(address, 6, 4) : "Explorer");
     return `${timeGreeting}, ${name}!`;
-  }, [address]);
+  }, [address, nickname]);
 
   return (
     <div className="space-y-6 text-xs text-[#c9d1d9]" aria-label="Center Workspace">
@@ -53,7 +55,7 @@ export function CenterFeed({
             <h1 className="text-lg font-bold text-[#f0f6fc] tracking-tight">{greeting}</h1>
           </div>
           <p className="text-xs text-[#8b949e] max-w-xl leading-relaxed">
-            Welcome to SolGit — Git-style smart contract version control & AI self-healing on the MST Blockchain (Chain ID 91562037).
+            Welcome to SolGit — Git-style smart contract version control & AI self-healing on the MST Coral Testnet (Chain ID 54635).
           </p>
         </div>
       </div>

@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   ChevronDown,
   RefreshCw,
+  User,
 } from "lucide-react";
 import { useWeb3Wallet } from "../../hooks/useWeb3Wallet";
 import { formatAddress, MST_EXPLORER_URL, MST_FAUCET_URL, MST_CHAIN_ID } from "../../lib/mstChain";
@@ -17,11 +18,13 @@ import { IdenticonAvatar } from "./IdenticonAvatar";
 
 export interface WalletButtonProps {
   onNotify?: (title: string, desc?: string, type?: "info" | "success" | "warning" | "error") => void;
+  onEditNickname?: () => void;
 }
 
-export function WalletButton({ onNotify }: WalletButtonProps) {
+export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
   const {
     checksumAddress,
+    nickname,
     balance,
     isConnecting,
     isConnected,
@@ -78,14 +81,14 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
           onClick={handleConnect}
           disabled={isConnecting}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium transition shadow-sm border border-[#2ea043]/30 disabled:opacity-60 cursor-pointer"
-          title="Connect Web3 Wallet (MetaMask, Rabby, etc.)"
+          title="Connect BridgeKey Wallet (EVM)"
         >
           {isConnecting ? (
             <RefreshCw className="w-3.5 h-3.5 animate-spin" />
           ) : (
             <Wallet className="w-3.5 h-3.5" />
           )}
-          <span>{isConnecting ? "Connecting..." : "Connect Wallet"}</span>
+          <span>{isConnecting ? "Connecting..." : "Connect BridgeKey"}</span>
         </button>
       </div>
     );
@@ -102,10 +105,14 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
       >
         <IdenticonAvatar address={checksumAddress} size={20} />
 
-        <div className="flex items-center gap-1.5 font-mono">
-          <span className="font-medium text-[#f0f6fc]">{formatAddress(checksumAddress, 5, 4)}</span>
+        <div className="flex items-center gap-1.5">
+          {nickname ? (
+            <span className="font-semibold text-[#f0f6fc]">{nickname}</span>
+          ) : (
+            <span className="font-medium text-[#f0f6fc] font-mono">{formatAddress(checksumAddress, 5, 4)}</span>
+          )}
           {balance !== null && (
-            <span className="text-[#8b949e] hidden sm:inline">
+            <span className="text-[#8b949e] font-mono hidden sm:inline text-[11px]">
               {balance} <span className="text-emerald-400">tMSTC</span>
             </span>
           )}
@@ -117,7 +124,7 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
             <span>Wrong Net</span>
           </span>
         ) : (
-          <span className="h-2 w-2 rounded-full bg-emerald-500 hidden sm:inline-block" title="Connected to MST Testnet" />
+          <span className="h-2 w-2 rounded-full bg-emerald-500 hidden sm:inline-block" title="Connected to MST Coral Testnet" />
         )}
 
         <ChevronDown className="w-3 h-3 text-[#8b949e]" />
@@ -131,7 +138,10 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
         >
           {/* Header Info */}
           <div className="px-3 py-2 border-b border-[#30363d]">
-            <div className="text-[11px] text-[#8b949e] mb-1">Signed in to SolGit as</div>
+            <div className="flex items-center justify-between text-[11px] text-[#8b949e] mb-1">
+              <span>Signed in as</span>
+              {nickname && <span className="font-semibold text-emerald-400">{nickname}</span>}
+            </div>
             <div className="flex items-center justify-between gap-2">
               <span className="font-mono text-[#f0f6fc] text-[11px] truncate select-all" title={checksumAddress}>
                 {checksumAddress}
@@ -139,7 +149,7 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
               <button
                 type="button"
                 onClick={handleCopy}
-                className="p-1 text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d] rounded transition"
+                className="p-1 text-[#8b949e] hover:text-[#f0f6fc] hover:bg-[#21262d] rounded transition cursor-pointer"
                 title="Copy Address"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -165,26 +175,41 @@ export function WalletButton({ onNotify }: WalletButtonProps) {
                   className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] transition flex items-center gap-1 cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>Switch to MST</span>
+                  <span>Switch to Coral</span>
                 </button>
               ) : (
                 <span className="inline-flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span>MST Testnet ({MST_CHAIN_ID})</span>
+                  <span>Coral Testnet ({MST_CHAIN_ID})</span>
                 </span>
               )}
             </div>
           </div>
 
-          {/* Explorer & Faucet Links */}
+          {/* Actions & Links */}
           <div className="py-1 border-b border-[#30363d]">
+            {onEditNickname && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsOpen(false);
+                  onEditNickname();
+                }}
+                className="w-full flex items-center justify-between px-3 py-1.5 text-[#c9d1d9] hover:bg-[#21262d] hover:text-[#58a6ff] transition cursor-pointer text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <User className="w-3.5 h-3.5 text-[#8b949e]" />
+                  <span>{nickname ? "Edit Nickname" : "Set Nickname"}</span>
+                </span>
+              </button>
+            )}
             <a
               href={`${MST_EXPLORER_URL}/address/${checksumAddress}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between px-3 py-1.5 text-[#c9d1d9] hover:bg-[#21262d] hover:text-[#58a6ff] transition"
             >
-              <span>View on MST Explorer</span>
+              <span>View on Coral Explorer</span>
               <ExternalLink className="w-3.5 h-3.5 text-[#8b949e]" />
             </a>
             <a

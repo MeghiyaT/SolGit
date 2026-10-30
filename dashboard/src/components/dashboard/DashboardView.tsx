@@ -12,6 +12,7 @@ export interface DashboardViewProps {
   onSelectRepo: (repoId: string) => void;
   onOpenNewRepoModal: () => void;
   address: string | null;
+  nickname?: string | null;
   pullRequests: PullRequestItem[];
   recentEvents: RollbackEvent[];
   onNavigatePR: (prId: number) => void;
@@ -26,6 +27,7 @@ export function DashboardView({
   onSelectRepo,
   onOpenNewRepoModal,
   address,
+  nickname,
   pullRequests,
   recentEvents,
   onNavigatePR,
@@ -50,6 +52,7 @@ export function DashboardView({
         <div className="lg:col-span-6">
           <CenterFeed
             address={address}
+            nickname={nickname}
             pullRequests={pullRequests}
             recentEvents={recentEvents}
             onSelectRepo={onSelectRepo}

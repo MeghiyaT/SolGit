@@ -13,6 +13,7 @@ import { CommandPalette } from "../components/CommandPalette";
 import { Toast } from "../components/Toast";
 import { DashboardView } from "../components/dashboard/DashboardView";
 import { NewRepoModal } from "../components/dashboard/NewRepoModal";
+import { NicknameModal } from "../components/wallet/NicknameModal";
 import { Web3WalletProvider, useWeb3Wallet } from "../hooks/useWeb3Wallet";
 import {
   INITIAL_SELECTORS,
@@ -42,7 +43,27 @@ function DashboardApp() {
   const [repos, setRepos] = useState<Repository[]>(INITIAL_REPOSITORIES);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("repo-1");
   const [isNewRepoModalOpen, setIsNewRepoModalOpen] = useState<boolean>(false);
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState<boolean>(false);
   const wallet = useWeb3Wallet();
+
+  // Onboard new user without nickname
+  useEffect(() => {
+    if (wallet.isConnected && wallet.checksumAddress) {
+      fetch(`/api/user?address=${wallet.checksumAddress}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.user?.nickname) {
+            wallet.setNickname(data.user.nickname);
+          } else {
+            // New user detected! Prompt for nickname
+            setIsNicknameModalOpen(true);
+          }
+        })
+        .catch(() => {
+          setIsNicknameModalOpen(true);
+        });
+    }
+  }, [wallet.isConnected, wallet.checksumAddress]);
 
   // ─────────────────────────────────────────────────────────────
   // Active Repository State Machine
@@ -59,7 +80,7 @@ function DashboardApp() {
 
   // Active repository object
   const activeRepo = useMemo(() => {
-    return repos.find((r) => r.id === selectedRepoId) || repos[0];
+    return repos.find((r) => r.id === selectedRepoId) || repos[0] || null;
   }, [repos, selectedRepoId]);
 
   // Dynamic Pull Requests list reflecting merged state
@@ -308,13 +329,17 @@ function DashboardApp() {
         onOpenNewRepoModal={() => setIsNewRepoModalOpen(true)}
         onOpenCommandPalette={() => setIsPaletteOpen(true)}
         onActionToast={showToast}
-        activeRepo={{ owner: activeRepo.owner, name: activeRepo.name }}
+        onEditNickname={() => setIsNicknameModalOpen(true)}
+        activeRepo={{
+          owner: activeRepo?.owner || wallet.nickname || "user",
+          name: activeRepo?.name || "contracts",
+        }}
       />
 
       {/* ──────────────────────────────────────────────────────────
           2. Conditional Main View: Dashboard vs Clean Repository
           ────────────────────────────────────────────────────────── */}
-      {currentView === "dashboard" ? (
+      {currentView === "dashboard" || !activeRepo ? (
         <DashboardView
           repos={repos}
           selectedRepoId={selectedRepoId}
@@ -324,6 +349,7 @@ function DashboardApp() {
           }}
           onOpenNewRepoModal={() => setIsNewRepoModalOpen(true)}
           address={wallet.checksumAddress}
+          nickname={wallet.nickname}
           pullRequests={pullRequests}
           recentEvents={events}
           onNavigatePR={() => {
@@ -423,8 +449,24 @@ function DashboardApp() {
         isOpen={isNewRepoModalOpen}
         onClose={() => setIsNewRepoModalOpen(false)}
         onCreateRepo={handleCreateRepo}
-        defaultOwner={activeRepo.owner}
+        defaultOwner={wallet.nickname || activeRepo?.owner || "developer"}
       />
+
+      {/* ──────────────────────────────────────────────────────────
+          3b. First-Time Nickname Onboarding Modal
+          ────────────────────────────────────────────────────────── */}
+      {wallet.checksumAddress && (
+        <NicknameModal
+          isOpen={isNicknameModalOpen}
+          onClose={() => setIsNicknameModalOpen(false)}
+          address={wallet.checksumAddress}
+          currentNickname={wallet.nickname}
+          onSave={(savedName) => {
+            wallet.setNickname(savedName);
+            showToast("Welcome to SolGit!", `Developer nickname set to "${savedName}".`, "success");
+          }}
+        />
+      )}
 
       {/* ──────────────────────────────────────────────────────────
           4. Command Palette Modal (⌘K / Ctrl+K / "/")
@@ -472,8 +514,8 @@ function DashboardApp() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
-                <span className="font-medium">MST Blockchain Testnet</span>
-                <span className="font-mono text-[11px] text-[#8b949e]">(Chain ID: 91562037)</span>
+                <span className="font-medium">MST Coral Testnet</span>
+                <span className="font-mono text-[11px] text-[#8b949e]">(Chain ID: 54635)</span>
               </div>
 
               <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#161b22] border border-[#30363d] text-[#c9d1d9]">
@@ -537,12 +579,12 @@ function DashboardApp() {
             {/* External Links */}
             <div className="flex items-center gap-4 text-[#8b949e]">
               <a
-                href="https://testnet.mstscan.com"
+                href="https://coral.mstscan.com"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-emerald-400 transition flex items-center gap-1"
               >
-                <span>MST Explorer</span>
+                <span>MST Coral Explorer</span>
                 <ExternalLink className="w-3 h-3 text-[#8b949e]" />
               </a>
               <a
@@ -555,7 +597,7 @@ function DashboardApp() {
                 <ExternalLink className="w-3 h-3 text-[#8b949e]" />
               </a>
               <a
-                href="https://testnetrpc.mstblockchain.com"
+                href="https://coralrpc.mstblockchain.com"
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-emerald-400 transition flex items-center gap-1"

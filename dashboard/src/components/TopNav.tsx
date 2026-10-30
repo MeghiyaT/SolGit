@@ -20,6 +20,7 @@ export interface TopNavProps {
   onOpenCommandPalette: () => void;
   onCopyAddress?: (addr: string, label?: string) => void;
   onActionToast?: (title: string, desc?: string, type?: "info" | "success" | "warning" | "error") => void;
+  onEditNickname?: () => void;
   activeRepo?: {
     owner: string;
     name: string;
@@ -32,6 +33,7 @@ export function TopNav({
   onOpenNewRepoModal = () => {},
   onOpenCommandPalette,
   onActionToast,
+  onEditNickname,
   activeRepo = { owner: "mst-protocol", name: "solgit-vault-diamond" },
 }: TopNavProps) {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -213,7 +215,7 @@ export function TopNav({
           </button>
 
           {/* Strict Web3 Wallet Authentication */}
-          <WalletButton onNotify={onActionToast} />
+          <WalletButton onNotify={onActionToast} onEditNickname={onEditNickname} />
         </div>
       </div>
     </header>

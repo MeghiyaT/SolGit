@@ -23,6 +23,7 @@ export interface Web3WalletContextValue extends Web3WalletState {
   connectWallet: () => Promise<void>;
   disconnectWallet: () => void;
   switchNetwork: () => Promise<void>;
+  setNickname: (name: string) => void;
 }
 
 const publicClient: PublicClient = createPublicClient({
@@ -38,6 +39,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
   const [walletState, setWalletState] = useState<Web3WalletState>({
     address: null,
     checksumAddress: null,
+    nickname: null,
     balance: null,
     chainId: null,
     isConnecting: false,
@@ -47,6 +49,10 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
   });
 
   const activeAddressRef = useRef<`0x${string}` | null>(null);
+
+  const setNickname = useCallback((nickname: string) => {
+    setWalletState((prev) => ({ ...prev, nickname }));
+  }, []);
 
   const fetchBalance = useCallback(async (address: `0x${string}`) => {
     try {
@@ -71,6 +77,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
         setWalletState({
           address: null,
           checksumAddress: null,
+          nickname: null,
           balance: null,
           chainId: null,
           isConnecting: false,
@@ -120,6 +127,16 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
 
         // Query balance on MST Testnet
         fetchBalance(checksum as `0x${string}`);
+
+        // Fetch user nickname
+        fetch(`/api/user?address=${checksum}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.user?.nickname) {
+              setWalletState((prev) => ({ ...prev, nickname: data.user.nickname }));
+            }
+          })
+          .catch(() => {});
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Failed to resolve account address";
         setWalletState((prev) => ({
@@ -183,6 +200,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
     setWalletState({
       address: null,
       checksumAddress: null,
+      nickname: null,
       balance: null,
       chainId: null,
       isConnecting: false,
@@ -229,7 +247,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
             params: [
               {
                 chainId: targetChainHex,
-                chainName: "MST Blockchain Testnet",
+                chainName: "MST Coral Testnet",
                 nativeCurrency: {
                   name: "MST Coin",
                   symbol: "tMSTC",
@@ -247,7 +265,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
             error: null,
           }));
         } catch (addError: unknown) {
-          const msg = addError instanceof Error ? addError.message : "Failed to add MST Testnet";
+          const msg = addError instanceof Error ? addError.message : "Failed to add MST Coral Testnet";
           setWalletState((prev) => ({ ...prev, error: msg }));
         }
       } else {
@@ -330,6 +348,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
     connectWallet,
     disconnectWallet,
     switchNetwork,
+    setNickname,
   };
 
   return (
