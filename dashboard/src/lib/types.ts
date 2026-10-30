@@ -1,5 +1,30 @@
 export type TabType = 'code' | 'commits' | 'pulls' | 'security' | 'loupe';
 
+export type ViewType = 'dashboard' | 'repository';
+
+export interface Web3WalletState {
+  address: `0x${string}` | null;
+  checksumAddress: string | null;
+  balance: string | null;
+  chainId: number | null;
+  isConnecting: boolean;
+  isConnected: boolean;
+  isWrongNetwork: boolean;
+  error: string | null;
+}
+
+export interface Repository {
+  id: string;
+  name: string;
+  owner: string;
+  description: string;
+  isPrivate: boolean;
+  updatedAt: string;
+  contractAddress: string;
+  facetCount: number;
+  guardianActive: boolean;
+}
+
 export interface VersionCommit {
   version: number;
   implementation: string;
