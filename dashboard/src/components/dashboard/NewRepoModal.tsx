@@ -59,6 +59,7 @@ export function NewRepoModal({
   // Deploying state
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -79,9 +80,40 @@ export function NewRepoModal({
     }
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      setUploadedFileName(file.name);
+      if (!repoName) {
+        setRepoName(file.name.replace(/\.sol$/, "").toLowerCase());
+      }
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) setSolCode(content);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repoName.trim()) return;
+    if (!repoName.trim() || !solCode.trim()) return;
 
     setIsDeploying(true);
     setDeployStep(1);
@@ -348,7 +380,14 @@ export function NewRepoModal({
               {activeTab === "file" ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-[#30363d] hover:border-emerald-500/50 rounded-lg p-6 text-center cursor-pointer transition bg-[#0d1117] group"
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition bg-[#0d1117] group ${
+                    isDragging
+                      ? "border-emerald-400 bg-emerald-500/10"
+                      : "border-[#30363d] hover:border-emerald-500/50"
+                  }`}
                 >
                   <input
                     type="file"
@@ -358,7 +397,11 @@ export function NewRepoModal({
                     className="hidden"
                   />
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Upload className="w-8 h-8 text-[#8b949e] group-hover:text-emerald-400 transition" />
+                    <Upload
+                      className={`w-8 h-8 transition ${
+                        isDragging ? "text-emerald-400 scale-110" : "text-[#8b949e] group-hover:text-emerald-400"
+                      }`}
+                    />
                     <div className="text-xs text-[#f0f6fc]">
                       {uploadedFileName ? (
                         <span className="font-mono text-emerald-400 font-semibold">{uploadedFileName}</span>
@@ -407,7 +450,7 @@ export function NewRepoModal({
               </button>
               <button
                 type="submit"
-                disabled={!repoName.trim()}
+                disabled={!repoName.trim() || !solCode.trim() || isDeploying}
                 className="px-3 py-1.5 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium transition shadow-sm border border-[#2ea043]/30 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
                 <BookOpen className="w-3.5 h-3.5" />

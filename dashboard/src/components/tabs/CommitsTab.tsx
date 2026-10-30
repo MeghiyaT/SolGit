@@ -990,16 +990,11 @@ function InlineDiffInspector({
 
   return (
     <div className="rounded-xl border border-white/[0.1] bg-black/60 overflow-hidden shadow-2xl">
-      {/* macOS Window Title Bar */}
-      <div className="px-4 py-2.5 bg-zinc-950/90 border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Traffic Lights + Path */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block border border-rose-600" />
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block border border-amber-600" />
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block border border-emerald-600" />
-          </div>
-          <span className="font-mono text-xs text-zinc-300">
+      {/* GitHub Diff Header */}
+      <div className="px-4 py-2.5 bg-[#161b22] border-b border-[#30363d] flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Path */}
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-xs text-[#c9d1d9]">
             diff --git a/{diffData.fromFilename} b/{diffData.toFilename}
           </span>
         </div>
@@ -1261,30 +1256,12 @@ function ModalDiffInspector({
     >
       <div className="max-w-5xl w-full max-h-[90vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scaleUp">
         {/* Modal Window Header */}
-        <div className="px-5 py-3.5 bg-zinc-900/90 border-b border-white/[0.08] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {/* macOS Window Controls */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                title="Close"
-                className="w-3 h-3 rounded-full bg-rose-500 hover:bg-rose-600 transition border border-rose-600 flex items-center justify-center group"
-              >
-                <X className="w-2 h-2 text-rose-950 opacity-0 group-hover:opacity-100" />
-              </button>
-              <span className="w-3 h-3 rounded-full bg-amber-500 border border-amber-600" />
-              <span className="w-3 h-3 rounded-full bg-emerald-500 border border-emerald-600" />
-            </div>
-
-            <div className="h-4 w-[1px] bg-white/10" />
-
-            <div className="flex items-center gap-2">
-              <GitCompare className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-white">
-                {diffData.title}
-              </span>
-            </div>
+        <div className="px-5 py-3.5 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <GitCompare className="w-4 h-4 text-emerald-400" />
+            <span className="text-sm font-semibold text-white">
+              {diffData.title}
+            </span>
           </div>
 
           {/* Action buttons */}

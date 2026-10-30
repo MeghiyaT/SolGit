@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import {
   createPublicClient,
   formatEther,
@@ -11,13 +19,22 @@ import {
 import { mstTestnet, MST_CHAIN_ID, MST_RPC_URL, MST_EXPLORER_URL } from "../lib/mstChain";
 import type { Web3WalletState } from "../lib/types";
 
-// Public client for reading MST blockchain state
+export interface Web3WalletContextValue extends Web3WalletState {
+  connectWallet: () => Promise<void>;
+  disconnectWallet: () => void;
+  switchNetwork: () => Promise<void>;
+}
+
 const publicClient: PublicClient = createPublicClient({
   chain: mstTestnet,
   transport: http(MST_RPC_URL),
 });
 
-export function useWeb3Wallet() {
+const DISCONNECTED_KEY = "solgit_wallet_manual_disconnected";
+
+const Web3WalletContext = createContext<Web3WalletContextValue | null>(null);
+
+export function Web3WalletProvider({ children }: { children: ReactNode }) {
   const [walletState, setWalletState] = useState<Web3WalletState>({
     address: null,
     checksumAddress: null,
@@ -28,6 +45,8 @@ export function useWeb3Wallet() {
     isWrongNetwork: false,
     error: null,
   });
+
+  const activeAddressRef = useRef<`0x${string}` | null>(null);
 
   const fetchBalance = useCallback(async (address: `0x${string}`) => {
     try {
@@ -40,7 +59,7 @@ export function useWeb3Wallet() {
     } catch {
       setWalletState((prev) => ({
         ...prev,
-        balance: "0.0000",
+        balance: prev.balance ?? "0.0000",
       }));
     }
   }, []);
@@ -48,6 +67,7 @@ export function useWeb3Wallet() {
   const updateAccountState = useCallback(
     async (accounts: string[], chainIdHex?: string | number) => {
       if (!accounts || accounts.length === 0) {
+        activeAddressRef.current = null;
         setWalletState({
           address: null,
           checksumAddress: null,
@@ -64,13 +84,19 @@ export function useWeb3Wallet() {
       try {
         const raw = accounts[0] as `0x${string}`;
         const checksum = getAddress(raw);
+        activeAddressRef.current = checksum as `0x${string}`;
+
         let currentChainId = chainIdHex
           ? typeof chainIdHex === "string"
             ? parseInt(chainIdHex, 16)
             : chainIdHex
           : null;
 
-        if (!currentChainId && typeof window !== "undefined" && (window as unknown as { ethereum?: { request: (args: { method: string }) => Promise<string> } }).ethereum) {
+        if (
+          !currentChainId &&
+          typeof window !== "undefined" &&
+          (window as unknown as { ethereum?: { request: (args: { method: string }) => Promise<string> } }).ethereum
+        ) {
           const hex = await (window as unknown as { ethereum: { request: (args: { method: string }) => Promise<string> } }).ethereum.request({
             method: "eth_chainId",
           });
@@ -79,16 +105,18 @@ export function useWeb3Wallet() {
 
         const isWrong = currentChainId !== null && currentChainId !== MST_CHAIN_ID;
 
-        setWalletState({
+        setWalletState((prev) => ({
+          ...prev,
           address: raw,
           checksumAddress: checksum,
-          balance: null,
+          // Preserve previous balance instead of flashing null
+          balance: prev.balance,
           chainId: currentChainId,
           isConnecting: false,
           isConnected: true,
           isWrongNetwork: isWrong,
           error: isWrong ? `Connected to unsupported chain (ID: ${currentChainId}). Please switch to MST Testnet.` : null,
-        });
+        }));
 
         // Query balance on MST Testnet
         fetchBalance(checksum as `0x${string}`);
@@ -112,6 +140,11 @@ export function useWeb3Wallet() {
       }));
       return;
     }
+
+    // Clear manual disconnect flag on explicit connect
+    try {
+      localStorage.removeItem(DISCONNECTED_KEY);
+    } catch {}
 
     setWalletState((prev) => ({ ...prev, isConnecting: true, error: null }));
 
@@ -142,6 +175,11 @@ export function useWeb3Wallet() {
   }, [updateAccountState]);
 
   const disconnectWallet = useCallback(() => {
+    try {
+      localStorage.setItem(DISCONNECTED_KEY, "true");
+    } catch {}
+
+    activeAddressRef.current = null;
     setWalletState({
       address: null,
       checksumAddress: null,
@@ -179,7 +217,6 @@ export function useWeb3Wallet() {
         error: null,
       }));
     } catch (switchError: unknown) {
-      // Code 4902 indicates that the chain has not been added to MetaMask
       if (
         switchError &&
         typeof switchError === "object" &&
@@ -220,7 +257,7 @@ export function useWeb3Wallet() {
     }
   }, []);
 
-  // Listen to provider events
+  // Listen to provider events (runs once on mount)
   useEffect(() => {
     if (typeof window === "undefined" || !(window as unknown as { ethereum?: unknown }).ethereum) {
       return;
@@ -234,34 +271,46 @@ export function useWeb3Wallet() {
       };
     }).ethereum;
 
-    // Check if already authorized
-    ethereum
-      .request({ method: "eth_accounts" })
-      .then((accs) => {
-        const accounts = accs as string[];
-        if (accounts && accounts.length > 0) {
-          updateAccountState(accounts);
-        }
-      })
-      .catch(() => {});
+    // Check if manually disconnected by user
+    let isManuallyDisconnected = false;
+    try {
+      isManuallyDisconnected = localStorage.getItem(DISCONNECTED_KEY) === "true";
+    } catch {}
+
+    if (!isManuallyDisconnected) {
+      ethereum
+        .request({ method: "eth_accounts" })
+        .then((accs) => {
+          const accounts = accs as string[];
+          if (accounts && accounts.length > 0) {
+            updateAccountState(accounts);
+          }
+        })
+        .catch(() => {});
+    }
 
     const handleAccountsChanged = (accs: unknown) => {
-      updateAccountState(accs as string[]);
+      const accounts = accs as string[];
+      // If user switched accounts in metamask, clear manual disconnect
+      if (accounts && accounts.length > 0) {
+        try {
+          localStorage.removeItem(DISCONNECTED_KEY);
+        } catch {}
+      }
+      updateAccountState(accounts);
     };
 
     const handleChainChanged = (chainIdHex: unknown) => {
-      setWalletState((prev) => {
-        const newChainId = parseInt(chainIdHex as string, 16);
-        const isWrong = newChainId !== MST_CHAIN_ID;
-        return {
-          ...prev,
-          chainId: newChainId,
-          isWrongNetwork: isWrong,
-          error: isWrong ? `Connected to unsupported chain (ID: ${newChainId}). Please switch to MST Testnet.` : null,
-        };
-      });
-      if (walletState.address) {
-        fetchBalance(walletState.address);
+      const newChainId = parseInt(chainIdHex as string, 16);
+      const isWrong = newChainId !== MST_CHAIN_ID;
+      setWalletState((prev) => ({
+        ...prev,
+        chainId: newChainId,
+        isWrongNetwork: isWrong,
+        error: isWrong ? `Connected to unsupported chain (ID: ${newChainId}). Please switch to MST Testnet.` : null,
+      }));
+      if (activeAddressRef.current) {
+        fetchBalance(activeAddressRef.current);
       }
     };
 
@@ -274,12 +323,26 @@ export function useWeb3Wallet() {
         ethereum.removeListener("chainChanged", handleChainChanged);
       }
     };
-  }, [updateAccountState, fetchBalance, walletState.address]);
+  }, [updateAccountState, fetchBalance]);
 
-  return {
+  const value: Web3WalletContextValue = {
     ...walletState,
     connectWallet,
     disconnectWallet,
     switchNetwork,
   };
+
+  return (
+    <Web3WalletContext.Provider value={value}>
+      {children}
+    </Web3WalletContext.Provider>
+  );
+}
+
+export function useWeb3Wallet(): Web3WalletContextValue {
+  const context = useContext(Web3WalletContext);
+  if (!context) {
+    throw new Error("useWeb3Wallet must be used within a Web3WalletProvider");
+  }
+  return context;
 }

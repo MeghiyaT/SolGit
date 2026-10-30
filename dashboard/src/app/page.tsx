@@ -13,7 +13,7 @@ import { CommandPalette } from "../components/CommandPalette";
 import { Toast } from "../components/Toast";
 import { DashboardView } from "../components/dashboard/DashboardView";
 import { NewRepoModal } from "../components/dashboard/NewRepoModal";
-import { useWeb3Wallet } from "../hooks/useWeb3Wallet";
+import { Web3WalletProvider, useWeb3Wallet } from "../hooks/useWeb3Wallet";
 import {
   INITIAL_SELECTORS,
   INITIAL_EVENTS,
@@ -34,7 +34,7 @@ import {
   Cpu,
 } from "lucide-react";
 
-export default function Home() {
+function DashboardApp() {
   // ─────────────────────────────────────────────────────────────
   // Platform & Wallet State
   // ─────────────────────────────────────────────────────────────
@@ -568,5 +568,13 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Web3WalletProvider>
+      <DashboardApp />
+    </Web3WalletProvider>
   );
 }

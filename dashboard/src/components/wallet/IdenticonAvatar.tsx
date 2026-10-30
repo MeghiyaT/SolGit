@@ -1,5 +1,5 @@
 import React from "react";
-import { getIdenticonGrid } from "../../lib/identicon.ts";
+import { getIdenticonGrid } from "../../lib/identicon";
 
 export { getIdenticonGrid };
 

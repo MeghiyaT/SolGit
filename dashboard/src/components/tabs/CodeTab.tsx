@@ -833,7 +833,7 @@ export function CodeTab({
                 title="Click to restore code view"
               >
                 <Code className="w-4 h-4 text-emerald-400 group-hover:scale-110 transition-transform" />
-                <span>Code window minimized. Click here or yellow traffic light to restore view.</span>
+                <span>Code preview minimized. Click here to restore view.</span>
               </div>
             ) : (
               <div

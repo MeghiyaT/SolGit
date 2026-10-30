@@ -926,12 +926,10 @@ export function SecurityTab({
           </div>
 
           <div className="rounded-2xl border border-zinc-800/90 bg-black/90 p-4 font-mono text-xs shadow-inner max-h-48 overflow-y-auto space-y-1.5 scrollbar-thin scrollbar-thumb-zinc-800">
-            {/* macOS traffic light window dots */}
-            <div className="flex items-center gap-1.5 pb-2 mb-2 border-b border-zinc-900">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
-              <span className="text-[10px] text-zinc-600 ml-2">mst-watcher-daemon --chain 91562037</span>
+            {/* Terminal Daemon Header */}
+            <div className="flex items-center gap-2 pb-2 mb-2 border-b border-zinc-900">
+              <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] text-zinc-400 font-mono">mst-watcher-daemon --chain 91562037</span>
             </div>
 
             {telemetryLogs.map((log) => (
