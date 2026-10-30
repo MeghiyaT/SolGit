@@ -7,6 +7,7 @@ import type {
   PullRequestCheck,
   PullRequestItem,
   ToastNotification,
+  Repository,
 } from "./types";
 
 export type {
@@ -18,7 +19,55 @@ export type {
   PullRequestCheck,
   PullRequestItem,
   ToastNotification,
+  Repository,
 };
+
+export const INITIAL_REPOSITORIES: Repository[] = [
+  {
+    id: "repo-1",
+    name: "solgit-vault-diamond",
+    owner: "mst-protocol",
+    description: "Self-healing EIP-2535 Diamond Proxy vault with automated SolGit Guardian circuit breakers on MST Blockchain.",
+    isPrivate: false,
+    updatedAt: "2 hours ago",
+    contractAddress: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
+    facetCount: 4,
+    guardianActive: true,
+  },
+  {
+    id: "repo-2",
+    name: "solgit-guardian",
+    owner: "mst-protocol",
+    description: "Autonomous pre/post transaction invariant watcher and execution reverser for Diamond cuts.",
+    isPrivate: false,
+    updatedAt: "1 day ago",
+    contractAddress: "0x6A7CC7e4500f95a14471d2425403cd31c09D5e27",
+    facetCount: 1,
+    guardianActive: true,
+  },
+  {
+    id: "repo-3",
+    name: "version-registry",
+    owner: "mst-protocol",
+    description: "On-chain Git-style VersionRegistry mapping function selectors to immutable bytecode hashes.",
+    isPrivate: false,
+    updatedAt: "3 days ago",
+    contractAddress: "0x2c26812168e4F6677047407AAD1aA0ef4180Df3d",
+    facetCount: 1,
+    guardianActive: false,
+  },
+  {
+    id: "repo-4",
+    name: "mst-dex-swap",
+    owner: "mst-protocol",
+    description: "Multi-facet decentralized exchange router with automated slippage protection.",
+    isPrivate: true,
+    updatedAt: "5 days ago",
+    contractAddress: "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7",
+    facetCount: 3,
+    guardianActive: true,
+  },
+];
 
 export const CONTRACTS = {
   chainId: 91562037,
