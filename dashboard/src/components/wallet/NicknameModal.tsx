@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { User, Sparkles, Check, AlertCircle, Loader2, X } from "lucide-react";
 import { formatAddress } from "../../lib/mstChain";
 
@@ -24,14 +24,16 @@ export function NicknameModal({
   const [nickname, setNickname] = useState(currentNickname || "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(isOpen);
 
-  useEffect(() => {
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
     if (isOpen) {
       setNickname(currentNickname || "");
       setError(null);
       setIsSubmitting(false);
     }
-  }, [isOpen, currentNickname]);
+  }
 
   if (!isOpen) return null;
 

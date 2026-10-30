@@ -18,7 +18,6 @@ import {
   Check,
 } from "lucide-react";
 import type { Repository } from "../../lib/types";
-import { MST_EXPLORER_URL } from "../../lib/mstChain";
 
 export interface NewRepoModalProps {
   isOpen: boolean;

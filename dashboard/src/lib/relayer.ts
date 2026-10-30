@@ -1,12 +1,9 @@
 import {
-  createPublicClient,
   createWalletClient,
   http,
   getAddress,
   keccak256,
   toHex,
-  type PublicClient,
-  type WalletClient,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mstTestnet, MST_RPC_URL, MST_EXPLORER_URL } from "./mstChain.ts";
@@ -59,11 +56,6 @@ export async function deployViaRelayer(params: DeployParams): Promise<DeployResu
   let contractAddress = "";
 
   try {
-    const publicClient: PublicClient = createPublicClient({
-      chain: mstTestnet,
-      transport: http(MST_RPC_URL, { timeout: 8000 }),
-    });
-
     const walletClient = createWalletClient({
       account,
       chain: mstTestnet,

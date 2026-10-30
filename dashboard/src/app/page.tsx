@@ -35,6 +35,18 @@ import {
   Cpu,
 } from "lucide-react";
 
+interface ApiRepoItem {
+  id: string;
+  name: string;
+  owner_nickname?: string;
+  description: string;
+  is_private?: boolean;
+  updated_at?: string;
+  contract_address: string;
+  facet_count?: number;
+  guardian_active?: boolean;
+}
+
 function DashboardApp() {
   // ─────────────────────────────────────────────────────────────
   // Platform & Wallet State
@@ -45,50 +57,60 @@ function DashboardApp() {
   const [isNewRepoModalOpen, setIsNewRepoModalOpen] = useState<boolean>(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState<boolean>(false);
   const wallet = useWeb3Wallet();
+  const { isConnected, checksumAddress, setNickname } = wallet;
+
+  // Reset repos on disconnect during render
+  const [prevConnected, setPrevConnected] = useState(isConnected);
+  if (isConnected !== prevConnected) {
+    setPrevConnected(isConnected);
+    if (!isConnected) {
+      setRepos([]);
+    }
+  }
 
   // Onboard new user without nickname & load user repositories
   useEffect(() => {
-    if (wallet.isConnected && wallet.checksumAddress) {
-      fetch(`/api/user?address=${wallet.checksumAddress}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.user?.nickname) {
-            wallet.setNickname(data.user.nickname);
-          } else {
-            // New user detected! Prompt for nickname
-            setIsNicknameModalOpen(true);
-          }
-        })
-        .catch(() => {
-          setIsNicknameModalOpen(true);
-        });
-
-      fetch(`/api/repos?address=${wallet.checksumAddress}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data?.repositories) && data.repositories.length > 0) {
-            const mappedRepos: Repository[] = data.repositories.map((r: any) => ({
-              id: r.id,
-              name: r.name,
-              owner: r.owner_nickname || "developer",
-              description: r.description,
-              isPrivate: Boolean(r.is_private),
-              updatedAt: r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "Recently",
-              contractAddress: r.contract_address,
-              facetCount: r.facet_count || 1,
-              guardianActive: Boolean(r.guardian_active),
-            }));
-            setRepos(mappedRepos);
-            setSelectedRepoId(mappedRepos[0].id);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load user repos:", err);
-        });
-    } else {
-      setRepos([]);
+    if (!isConnected || !checksumAddress) {
+      return;
     }
-  }, [wallet.isConnected, wallet.checksumAddress]);
+
+    fetch(`/api/user?address=${checksumAddress}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.nickname) {
+          setNickname(data.user.nickname);
+        } else {
+          // New user detected! Prompt for nickname
+          setIsNicknameModalOpen(true);
+        }
+      })
+      .catch(() => {
+        setIsNicknameModalOpen(true);
+      });
+
+    fetch(`/api/repos?address=${checksumAddress}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data?.repositories) && data.repositories.length > 0) {
+          const mappedRepos: Repository[] = (data.repositories as ApiRepoItem[]).map((r) => ({
+            id: r.id,
+            name: r.name,
+            owner: r.owner_nickname || "developer",
+            description: r.description,
+            isPrivate: Boolean(r.is_private),
+            updatedAt: r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "Recently",
+            contractAddress: r.contract_address,
+            facetCount: r.facet_count || 1,
+            guardianActive: Boolean(r.guardian_active),
+          }));
+          setRepos(mappedRepos);
+          setSelectedRepoId(mappedRepos[0].id);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load user repos:", err);
+      });
+  }, [isConnected, checksumAddress, setNickname]);
 
   // ─────────────────────────────────────────────────────────────
   // Active Repository State Machine

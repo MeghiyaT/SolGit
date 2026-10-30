@@ -3,7 +3,6 @@
 import React, { useMemo } from "react";
 import {
   GitPullRequest,
-  CheckCircle2,
   Clock,
   ArrowUpRight,
   Shield,
