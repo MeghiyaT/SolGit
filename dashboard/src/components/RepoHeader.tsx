@@ -15,11 +15,19 @@ import {
 export interface RepoHeaderProps {
   isGuardianActive?: boolean;
   onActionToast?: (msg: string) => void;
+  onNavigateHome?: () => void;
+  owner?: string;
+  repoName?: string;
+  isPrivate?: boolean;
 }
 
 export function RepoHeader({
   isGuardianActive = true,
   onActionToast,
+  onNavigateHome,
+  owner = "mst-protocol",
+  repoName = "solgit-vault-diamond",
+  isPrivate = false,
 }: RepoHeaderProps) {
   const [isStarred, setIsStarred] = useState(false);
   const [starCount, setStarCount] = useState(48);
@@ -82,27 +90,30 @@ export function RepoHeader({
             </div>
 
             <nav aria-label="Repository identifier" className="flex items-center gap-1.5 text-base sm:text-lg min-w-0">
-              <button
-                type="button"
-                onClick={() => onActionToast?.("Navigating to organization: mst-protocol")}
-                className="text-zinc-400 hover:text-emerald-400 transition cursor-pointer font-normal truncate focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 -mx-1 text-left"
-                aria-label="Repository owner: mst-protocol"
-              >
-                mst-protocol
-              </button>
-              <span className="text-zinc-600 select-none">/</span>
-              <button
-                type="button"
-                onClick={() => onActionToast?.("Active repo: mst-protocol/solgit-vault-diamond")}
-                className="font-bold text-white tracking-tight hover:text-emerald-400 transition cursor-pointer truncate focus:outline-none focus:ring-1 focus:ring-emerald-500 rounded px-1 -mx-1 text-left"
-                aria-label="Repository name: solgit-vault-diamond"
-              >
-                solgit-vault-diamond
-              </button>
+              {onNavigateHome && (
+                <>
+                  <button
+                    type="button"
+                    onClick={onNavigateHome}
+                    className="text-[#8b949e] hover:text-[#58a6ff] transition cursor-pointer font-medium"
+                    title="Return to SolGit Dashboard"
+                  >
+                    SolGit
+                  </button>
+                  <span className="text-[#30363d] select-none">/</span>
+                </>
+              )}
+              <span className="text-[#8b949e] font-normal truncate">
+                {owner}
+              </span>
+              <span className="text-[#30363d] select-none">/</span>
+              <span className="font-bold text-[#f0f6fc] tracking-tight truncate">
+                {repoName}
+              </span>
             </nav>
 
-            <span className="text-xs px-2.5 py-0.5 rounded-full border border-white/10 bg-white/[0.04] text-zinc-300 font-medium">
-              Public
+            <span className="text-xs px-2.5 py-0.5 rounded-full border border-[#30363d] bg-[#21262d] text-[#c9d1d9] font-medium">
+              {isPrivate ? "Private" : "Public"}
             </span>
           </div>
 
