@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+Object.assign(process.env, { NODE_ENV: "test" });
+process.env.PRIVATE_KEY =
+  process.env.PRIVATE_KEY ||
+  "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80";
+
 test("relayer deployment module validates inputs and deploys to Coral", async () => {
   const { deployViaRelayer } = await import("../lib/relayer.ts");
 

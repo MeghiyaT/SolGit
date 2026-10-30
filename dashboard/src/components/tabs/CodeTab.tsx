@@ -35,6 +35,7 @@ import {
   CONTRACTS,
   type RepoFile,
 } from "../../lib/data";
+import type { Repository } from "../../lib/types";
 
 export interface CodeTabProps {
   selectedFile: string;
@@ -42,6 +43,7 @@ export interface CodeTabProps {
   isHacked?: boolean;
   isMerged?: boolean;
   onCopyToast?: (text: string) => void;
+  activeRepo?: Repository | null;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -161,6 +163,7 @@ export function CodeTab({
   isHacked = false,
   isMerged = false,
   onCopyToast,
+  activeRepo,
 }: CodeTabProps) {
   // Branch state
   const [selectedBranch, setSelectedBranch] = useState("main");
@@ -183,14 +186,56 @@ export function CodeTab({
   const branchDropdownRef = useRef<HTMLDivElement>(null);
   const codePopoverRef = useRef<HTMLDivElement>(null);
 
+  // Dynamic files if active repository has custom uploaded Solidity code
+  const dynamicFiles: RepoFile[] = useMemo(() => {
+    if (activeRepo?.solCode) {
+      const contractFileName = `${activeRepo.name}.sol`;
+      const contractPath = `contracts/${contractFileName}`;
+      const contractLines = activeRepo.solCode.split("\n").length;
+      const contractFile: RepoFile = {
+        name: contractFileName,
+        path: contractPath,
+        size: `${Math.max(0.1, Math.round((activeRepo.solCode.length / 1024) * 10) / 10)} KB`,
+        lines: contractLines,
+        description: `EIP-2535 Diamond Facet for ${activeRepo.name}`,
+        lastCommit: {
+          message: `feat: deploy ${activeRepo.name} on MST Coral`,
+          author: activeRepo.owner,
+          time: activeRepo.updatedAt || "Just now",
+          sha: activeRepo.txHash ? activeRepo.txHash.slice(2, 9) : "genesis",
+        },
+        content: activeRepo.solCode,
+        language: "solidity",
+      };
+
+      const readmeContent = `# ${activeRepo.name}\n\n${activeRepo.description}\n\n- **Contract Address**: \`${activeRepo.contractAddress}\`\n- **Network**: MST Coral Testnet (Chain ID 54635)\n- **Explorer**: https://coral.mstscan.com/address/${activeRepo.contractAddress}\n- **Facet Count**: ${activeRepo.facetCount}\n- **Guardian Protection**: Active\n`;
+      const readmeFile: RepoFile = {
+        name: "README.md",
+        path: "README.md",
+        size: "1.2 KB",
+        lines: readmeContent.split("\n").length,
+        description: "Repository documentation and deployment coordinates",
+        lastCommit: {
+          message: "docs: initialize repository readme",
+          author: activeRepo.owner,
+          time: activeRepo.updatedAt || "Just now",
+          sha: "genesis",
+        },
+        content: readmeContent,
+        language: "markdown",
+      };
+      return [contractFile, readmeFile];
+    }
+    return REPO_FILES;
+  }, [activeRepo]);
+
   // Resolve currently active file
   const activeFile: RepoFile = useMemo(() => {
-    return (
-      REPO_FILES_MAP[selectedFile] ||
-      REPO_FILES.find((f) => f.name === selectedFile || f.path === selectedFile) ||
-      REPO_FILES[0]
-    );
-  }, [selectedFile]);
+    const matched =
+      dynamicFiles.find((f) => f.name === selectedFile || f.path === selectedFile) ||
+      REPO_FILES_MAP[selectedFile];
+    return matched || dynamicFiles[0] || REPO_FILES[0];
+  }, [dynamicFiles, selectedFile]);
 
   // Handle outside clicks to close popovers
   useEffect(() => {
@@ -281,15 +326,15 @@ export function CodeTab({
 
   // Filtered files for table
   const displayedFiles = useMemo(() => {
-    if (!fileSearch.trim()) return REPO_FILES;
+    if (!fileSearch.trim()) return dynamicFiles;
     const query = fileSearch.toLowerCase();
-    return REPO_FILES.filter(
+    return dynamicFiles.filter(
       (f) =>
         f.name.toLowerCase().includes(query) ||
         f.path.toLowerCase().includes(query) ||
-        f.description.toLowerCase().includes(query)
+        (f.description && f.description.toLowerCase().includes(query))
     );
-  }, [fileSearch]);
+  }, [dynamicFiles, fileSearch]);
 
   // Commit summary data based on state
   const commitSummary = useMemo(() => {
@@ -444,7 +489,7 @@ export function CodeTab({
                   </span>
                 </div>
                 <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
-                  Chain: 91562037
+                  Chain: 54635 (MST Coral)
                 </span>
               </div>
 
@@ -998,11 +1043,11 @@ export function CodeTab({
             <div className="pt-2 border-t border-white/10 space-y-2 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Network</span>
-                <span className="font-semibold text-white">MST Blockchain Testnet</span>
+                <span className="font-semibold text-white">MST Coral Testnet</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Chain ID</span>
-                <span className="font-mono text-emerald-400">91562037</span>
+                <span className="font-mono text-emerald-400">54635</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-zinc-500">Native Token</span>

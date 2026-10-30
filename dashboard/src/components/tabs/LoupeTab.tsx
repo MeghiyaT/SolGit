@@ -576,7 +576,7 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
 
           <div className="inline-flex items-center gap-2 text-xs font-mono text-zinc-400 bg-white/[0.03] px-3 py-1.5 rounded-lg border border-white/[0.06] self-start sm:self-auto">
             <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-            <span>RPC: testnetrpc.mstblockchain.com</span>
+            <span>RPC: coralrpc.mstblockchain.com</span>
           </div>
         </div>
 
@@ -822,7 +822,7 @@ export function LoupeTab({ selectors, onCopy, onActionToast }: LoupeTabProps) {
                 {filteredSelectors.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="py-12 text-center text-zinc-500 font-mono">
-                      No function selectors matched the current filter criteria (&quot;{searchQuery}&quot;).
+                      {searchQuery ? `No function selectors matched ("${searchQuery}").` : "No function selectors registered yet."}
                     </td>
                   </tr>
                 ) : (

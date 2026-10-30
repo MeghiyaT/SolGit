@@ -28,10 +28,24 @@ export interface DeployResult {
   repository: Repository;
 }
 
-const DEFAULT_RELAYER_KEY =
-  "0x58f67a2fc47b3e90aa7a1a97b49f7f1b0e90695793da4b8367101d7ae0c59899";
+let deployMutex: Promise<unknown> = Promise.resolve();
 
 export async function deployViaRelayer(params: DeployParams): Promise<DeployResult> {
+  const previousLock = deployMutex;
+  let release: () => void = () => {};
+  deployMutex = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  try {
+    await previousLock;
+    return await executeDeploy(params);
+  } finally {
+    release();
+  }
+}
+
+async function executeDeploy(params: DeployParams): Promise<DeployResult> {
   const {
     repoName,
     description = "Smart contract diamond proxy deployed on MST Coral Testnet.",
@@ -48,8 +62,11 @@ export async function deployViaRelayer(params: DeployParams): Promise<DeployResu
   const checksummedOwner = getAddress(ownerAddress.trim());
   const formattedRepoName = repoName.trim().toLowerCase().replace(/\s+/g, "-");
 
-  // Determine private key for relayer
-  const privKey = (process.env.PRIVATE_KEY as `0x${string}`) || (DEFAULT_RELAYER_KEY as `0x${string}`);
+  // Determine private key for relayer strictly from environment
+  const privKey = (process.env.PRIVATE_KEY || process.env.RELAYER_PRIVATE_KEY) as `0x${string}`;
+  if (!privKey) {
+    throw new Error("Server relayer misconfiguration: PRIVATE_KEY environment variable is required.");
+  }
   const account = privateKeyToAccount(privKey);
 
   let txHash = "";
@@ -74,12 +91,17 @@ export async function deployViaRelayer(params: DeployParams): Promise<DeployResu
     // Derive on-chain contract address deterministically from txHash & account nonce
     const derived = keccak256(toHex(`${txHash}:${checksummedOwner}:${Date.now()}`)).slice(0, 42);
     contractAddress = getAddress(`0x${derived.slice(2)}`);
-  } catch {
-    // Graceful offline / sandbox simulation fallback
-    const hashBytes = keccak256(toHex(`${formattedRepoName}:${checksummedOwner}:${Date.now()}`));
-    txHash = hashBytes;
-    const addrBytes = keccak256(toHex(`contract:${hashBytes}`)).slice(0, 42);
-    contractAddress = getAddress(`0x${addrBytes.slice(2)}`);
+  } catch (err: unknown) {
+    // In test or offline simulation environments, generate deterministic hashes
+    if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_MOCK_RELAYER === "true") {
+      const hashBytes = keccak256(toHex(`${formattedRepoName}:${checksummedOwner}:${Date.now()}`));
+      txHash = hashBytes;
+      const addrBytes = keccak256(toHex(`contract:${hashBytes}`)).slice(0, 42);
+      contractAddress = getAddress(`0x${addrBytes.slice(2)}`);
+    } else {
+      const message = err instanceof Error ? err.message : "MST Coral RPC error";
+      throw new Error(`Relayer deployment failed on MST Coral Testnet: ${message}`);
+    }
   }
 
   const repoId = `repo-${Date.now()}`;
@@ -113,14 +135,18 @@ export async function deployViaRelayer(params: DeployParams): Promise<DeployResu
     contractAddress: repoRecord.contract_address,
     facetCount: repoRecord.facet_count,
     guardianActive: repoRecord.guardian_active,
+    solCode: repoRecord.sol_code,
+    txHash: repoRecord.tx_hash,
   };
+
+  const explorerBase = MST_EXPLORER_URL.replace(/\/+$/, "");
 
   return {
     success: true,
     contractAddress,
     txHash,
-    txUrl: `${MST_EXPLORER_URL}/tx/${txHash}`,
-    explorerUrl: `${MST_EXPLORER_URL}/address/${contractAddress}`,
+    txUrl: `${explorerBase}/tx/${txHash}`,
+    explorerUrl: `${explorerBase}/address/${contractAddress}`,
     repository,
   };
 }

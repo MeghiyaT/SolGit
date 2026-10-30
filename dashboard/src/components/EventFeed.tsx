@@ -61,7 +61,7 @@ export function EventFeed({ events }: EventFeedProps) {
             <div className="mt-3 pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] font-mono text-zinc-500">
               <span>Triggered by: {evt.triggeredBy}</span>
               <a
-                href={`https://testnet.mstscan.com/tx/${evt.txHash}`}
+                href={`https://coral.mstscan.com/tx/${evt.txHash}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 transition"

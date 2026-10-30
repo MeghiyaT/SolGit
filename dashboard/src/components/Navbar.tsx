@@ -43,8 +43,8 @@ export function Navbar() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-zinc-300 font-medium">MST Testnet</span>
-            <span className="text-zinc-500 font-mono">ID: 91562037</span>
+            <span className="text-zinc-300 font-medium">MST Coral</span>
+            <span className="text-zinc-500 font-mono">ID: 54635</span>
             <span className="text-emerald-400/80 font-mono">~3s</span>
           </div>
 
@@ -61,7 +61,7 @@ export function Navbar() {
 
           {/* MSTScan Explorer Link */}
           <a
-            href="https://testnet.mstscan.com/address/0xCEe1d6467040c32185dBC60afAc508266b3D19EB"
+            href="https://coral.mstscan.com/address/0xCEe1d6467040c32185dBC60afAc508266b3D19EB"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/20 transition font-medium"

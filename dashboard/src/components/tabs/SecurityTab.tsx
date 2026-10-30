@@ -929,7 +929,7 @@ export function SecurityTab({
             {/* Terminal Daemon Header */}
             <div className="flex items-center gap-2 pb-2 mb-2 border-b border-zinc-900">
               <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-[10px] text-zinc-400 font-mono">mst-watcher-daemon --chain 91562037</span>
+              <span className="text-[10px] text-zinc-400 font-mono">mst-watcher-daemon --chain 54635</span>
             </div>
 
             {telemetryLogs.map((log) => (

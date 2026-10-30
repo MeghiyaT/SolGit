@@ -121,18 +121,18 @@ export async function getRepositories(ownerAddress?: string): Promise<RepoRecord
     }
     const { data, error } = await query;
     if (!error && data && Array.isArray(data)) {
-      // sync local
+      // Merge remote data with local cache (dedup by id)
       const local = ensureStoreFile();
-      data.forEach((repo: RepoRecord) => {
-        const idx = local.repositories.findIndex((r) => r.id === repo.id);
-        if (idx >= 0) {
-          local.repositories[idx] = repo;
-        } else {
-          local.repositories.push(repo);
-        }
-      });
+      const map = new Map<string, RepoRecord>();
+      local.repositories.forEach((r) => map.set(r.id, r));
+      data.forEach((r: RepoRecord) => map.set(r.id, r));
+      const merged = Array.from(map.values());
+      local.repositories = merged;
       writeStoreFile(local);
-      return data as RepoRecord[];
+      if (ownerAddress) {
+        return merged.filter((r) => r.owner_address.toLowerCase() === ownerAddress.toLowerCase());
+      }
+      return merged;
     }
   } catch {}
 
@@ -170,3 +170,4 @@ export async function saveRepository(repo: RepoRecord): Promise<RepoRecord> {
 
   return fullRepo;
 }
+

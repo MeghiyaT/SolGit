@@ -177,7 +177,7 @@ const CI_CHECKS: CiCheckDetail[] = [
     duration: "12ms",
     category: "test",
     logs: [
-      "[INFO] Executing isolated Foundry fork test against MST Testnet (Chain ID 91562037)...",
+      "[INFO] Executing isolated Foundry fork test against MST Coral Testnet (Chain ID 54635)...",
       "[SETUP] Initializing Attacker account 0x67852244E41F39CA15605264536E94BaBf56A4e7 with 0 balance",
       "[INVOKE] Calling withdraw(200 ether) from zero-balance account...",
       "[PASS] testWithdrawUnderflowExploit() (gas: 24192)",

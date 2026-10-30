@@ -43,6 +43,8 @@ interface ApiRepoItem {
   is_private?: boolean;
   updated_at?: string;
   contract_address: string;
+  tx_hash?: string;
+  sol_code?: string;
   facet_count?: number;
   guardian_active?: boolean;
 }
@@ -53,7 +55,7 @@ function DashboardApp() {
   // ─────────────────────────────────────────────────────────────
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [repos, setRepos] = useState<Repository[]>(INITIAL_REPOSITORIES);
-  const [selectedRepoId, setSelectedRepoId] = useState<string>("repo-1");
+  const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
   const [isNewRepoModalOpen, setIsNewRepoModalOpen] = useState<boolean>(false);
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState<boolean>(false);
   const wallet = useWeb3Wallet();
@@ -65,6 +67,7 @@ function DashboardApp() {
     setPrevConnected(isConnected);
     if (!isConnected) {
       setRepos([]);
+      setSelectedRepoId(null);
     }
   }
 
@@ -102,6 +105,8 @@ function DashboardApp() {
             contractAddress: r.contract_address,
             facetCount: r.facet_count || 1,
             guardianActive: Boolean(r.guardian_active),
+            solCode: r.sol_code,
+            txHash: r.tx_hash,
           }));
           setRepos(mappedRepos);
           setSelectedRepoId(mappedRepos[0].id);
@@ -389,7 +394,7 @@ function DashboardApp() {
       {currentView === "dashboard" || !activeRepo ? (
         <DashboardView
           repos={repos}
-          selectedRepoId={selectedRepoId}
+          selectedRepoId={selectedRepoId || ""}
           onSelectRepo={(id) => {
             setSelectedRepoId(id);
             setCurrentView("repository");
@@ -425,7 +430,7 @@ function DashboardApp() {
           <TabNav
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
-            prCount={isMerged ? 0 : 1}
+            prCount={pullRequests.length}
             hasSecurityAlert={isHacked && !isMerged}
           />
 
@@ -439,6 +444,7 @@ function DashboardApp() {
                   isHacked={isHacked}
                   isMerged={isMerged}
                   onCopyToast={handleCopyToast}
+                  activeRepo={activeRepo}
                 />
               )}
 
@@ -513,6 +519,7 @@ function DashboardApp() {
           currentNickname={wallet.nickname}
           onSave={(savedName) => {
             wallet.setNickname(savedName);
+            setRepos((prev) => prev.map((r) => ({ ...r, owner: savedName })));
             showToast("Welcome to SolGit!", `Developer nickname set to "${savedName}".`, "success");
           }}
         />

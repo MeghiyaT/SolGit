@@ -284,7 +284,7 @@ contract VaultBalanceFacet {
     alertType: "info",
     alertTitle: "Genesis Release Implementation",
     alertDescription:
-      "This facet was deployed and registered during initial Diamond proxy initialization. Verified on MST Testnet (Chain ID 91562037).",
+      "This facet was deployed and registered during initial Diamond proxy initialization. Verified on MST Coral Testnet (Chain ID 54635).",
     additions: rawLines.length,
     deletions: 0,
     lines,

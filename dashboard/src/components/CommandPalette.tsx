@@ -393,7 +393,7 @@ export function CommandPalette({
             </div>
           </div>
           <div className="flex items-center gap-2 text-[10px] font-mono text-[#8b949e]">
-            <span>MST Testnet: 91562037</span>
+            <span>MST Coral Testnet: 54635</span>
           </div>
         </div>
 

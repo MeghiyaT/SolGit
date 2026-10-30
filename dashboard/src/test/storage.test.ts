@@ -38,3 +38,4 @@ test("storage module exports valid operations", async () => {
   const repos = await getRepositories(testAddr);
   assert.ok(repos.some((r) => r.id === "repo-test-1"));
 });
+

@@ -24,6 +24,8 @@ export interface Repository {
   contractAddress: string;
   facetCount: number;
   guardianActive: boolean;
+  solCode?: string;
+  txHash?: string;
 }
 
 export interface VersionCommit {

@@ -597,7 +597,7 @@ export const README_MD_CODE = `# SolGit: Git-Style Smart Contract Platform & Sel
 
 > **A GitHub-like platform for Solidity smart contracts** with permanent contract addresses powered by **EIP-2535 Diamond Proxies**, automated **Guardian-role function rollbacks**, and an **AI Fixer** that patches compromised code.
 
-Built for the **MST Blockchain** (Chain ID: \`91562037\`, ~3s block time, EVM-compatible).
+Built for the **MST Blockchain** (Chain ID: \`54635\`, ~3s block time, EVM-compatible).
 
 ---
 

@@ -241,7 +241,7 @@ export function RepoHeader({
               self-healing
             </span>
             <span className="hidden md:inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-white/[0.04] text-zinc-400 border border-white/10 font-mono">
-              chain-91562037
+              chain-54635
             </span>
           </div>
         </div>

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddress } from "viem";
 import { getRepositories, saveRepository, type RepoRecord } from "../../../lib/storage";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
+
+  if (address && !isAddress(address)) {
+    return NextResponse.json({ error: "Invalid address parameter" }, { status: 400 });
+  }
 
   try {
     const repos = await getRepositories(address || undefined);
@@ -38,6 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!isAddress(owner_address) || !isAddress(contract_address)) {
+      return NextResponse.json(
+        { error: "Invalid owner_address or contract_address format" },
+        { status: 400 }
+      );
+    }
+
     const repoRecord: RepoRecord = {
       id: id || `repo-${Date.now()}`,
       name: name.trim().toLowerCase().replace(/\s+/g, "-"),
@@ -59,3 +71,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
