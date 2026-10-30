@@ -11,6 +11,7 @@ import {
   ChevronDown,
   RefreshCw,
   User,
+  X,
 } from "lucide-react";
 import { useWeb3Wallet } from "../../hooks/useWeb3Wallet";
 import { formatAddress, MST_EXPLORER_URL, MST_FAUCET_URL, MST_CHAIN_ID } from "../../lib/mstChain";
@@ -31,12 +32,15 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
     isWrongNetwork,
     error,
     connectWallet,
+    connectManualAddress,
     disconnectWallet,
     switchNetwork,
   } = useWeb3Wallet();
 
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualInput, setManualInput] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
@@ -75,7 +79,7 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
 
   if (!isConnected || !checksumAddress) {
     return (
-      <div className="relative">
+      <div className="relative flex items-center gap-1.5">
         <button
           type="button"
           onClick={handleConnect}
@@ -90,6 +94,77 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
           )}
           <span>{isConnecting ? "Connecting..." : "Connect BridgeKey"}</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => setShowManualModal(true)}
+          className="px-2 py-1.5 rounded-md bg-[#21262d] hover:bg-[#30363d] text-[#8b949e] hover:text-[#c9d1d9] border border-[#30363d] text-xs transition cursor-pointer"
+          title="Connect via BridgeKey Address Directly"
+        >
+          Paste Address
+        </button>
+
+        {showManualModal && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="w-full max-w-md bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#30363d] pb-3">
+                <div className="flex items-center gap-2 text-white font-semibold text-sm">
+                  <Wallet className="w-4 h-4 text-emerald-400" />
+                  <span>Connect BridgeKey Address</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManualModal(false)}
+                  className="text-[#8b949e] hover:text-white p-1 rounded transition cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <p className="text-xs text-[#8b949e] leading-relaxed">
+                Copy your address from BridgeKey (e.g. <code className="text-emerald-400">0x0318A1Df19a78f6784CbDDcE768EEF970C561493</code>) and paste it below to connect directly with zero gas fees.
+              </p>
+
+              <div>
+                <label className="block text-xs text-[#c9d1d9] font-medium mb-1">
+                  BridgeKey EVM Address
+                </label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  className="w-full px-3 py-2 rounded-md bg-[#0d1117] border border-[#30363d] text-xs font-mono text-white outline-none focus:border-[#58a6ff]"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#30363d]">
+                <button
+                  type="button"
+                  onClick={() => setShowManualModal(false)}
+                  className="px-3 py-1.5 rounded-md border border-[#30363d] text-xs text-[#8b949e] hover:text-white transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!manualInput.trim()) return;
+                    await connectManualAddress(manualInput.trim());
+                    setShowManualModal(false);
+                    if (onNotify) {
+                      onNotify("Connected to BridgeKey", "Connected via direct address authorization.", "success");
+                    }
+                  }}
+                  className="px-3 py-1.5 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium transition cursor-pointer"
+                >
+                  Connect Address
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

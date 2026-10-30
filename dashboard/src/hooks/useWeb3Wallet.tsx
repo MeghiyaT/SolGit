@@ -21,6 +21,7 @@ import type { Web3WalletState } from "../lib/types";
 
 export interface Web3WalletContextValue extends Web3WalletState {
   connectWallet: () => Promise<void>;
+  connectManualAddress: (address: string) => Promise<void>;
   disconnectWallet: () => void;
   switchNetwork: () => Promise<void>;
   setNickname: (name: string) => void;
@@ -166,17 +167,53 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
     setWalletState((prev) => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      const ethereum = (window as unknown as {
-        ethereum: {
+      const win = window as unknown as {
+        ethereum?: {
           request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+          providers?: Array<{
+            request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+            isBridgeKey?: boolean;
+            isPhantom?: boolean;
+            isMST?: boolean;
+            name?: string;
+          }>;
+          isPhantom?: boolean;
+          isBridgeKey?: boolean;
         };
-      }).ethereum;
+        bridgekey?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+        bridgeKey?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+        mst?: { request: (args: { method: string; params?: unknown[] }) => Promise<unknown> };
+      };
 
-      const accounts = (await ethereum.request({
+      let targetProvider = win.ethereum;
+
+      if (win.bridgekey) {
+        targetProvider = win.bridgekey;
+      } else if (win.bridgeKey) {
+        targetProvider = win.bridgeKey;
+      } else if (win.mst) {
+        targetProvider = win.mst;
+      } else if (Array.isArray(win.ethereum?.providers)) {
+        const bk = win.ethereum.providers.find(
+          (p) => p.isBridgeKey || p.isMST || p.name?.toLowerCase().includes("bridgekey")
+        );
+        if (bk) {
+          targetProvider = bk;
+        } else {
+          const nonPhantom = win.ethereum.providers.find((p) => !p.isPhantom);
+          if (nonPhantom) targetProvider = nonPhantom;
+        }
+      }
+
+      if (!targetProvider) {
+        throw new Error("No compatible EVM wallet provider found.");
+      }
+
+      const accounts = (await targetProvider.request({
         method: "eth_requestAccounts",
       })) as string[];
 
-      const chainIdHex = (await ethereum.request({
+      const chainIdHex = (await targetProvider.request({
         method: "eth_chainId",
       })) as string;
 
@@ -205,8 +242,23 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
         message =
           "Connection request was cancelled or dismissed in BridgeKey. Please click 'Connect BridgeKey' and approve the prompt.";
       } else if (code === -32002 || message.toLowerCase().includes("already pending")) {
+        // Attempt eth_accounts in case BridgeKey is already unlocked and authorized
+        try {
+          const ethereum = (window as unknown as {
+            ethereum: {
+              request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+            };
+          }).ethereum;
+          const existingAccounts = (await ethereum.request({ method: "eth_accounts" })) as string[];
+          if (existingAccounts && existingAccounts.length > 0) {
+            const chainIdHex = (await ethereum.request({ method: "eth_chainId" })) as string;
+            await updateAccountState(existingAccounts, chainIdHex);
+            return;
+          }
+        } catch {}
+
         message =
-          "Connection request is already pending in BridgeKey. Please open the BridgeKey window or tab to approve.";
+          "Connection request is pending in BridgeKey. Click the purple BridgeKey icon in your Chrome toolbar (top right) to approve.";
       }
 
       setWalletState((prev) => ({
@@ -216,6 +268,47 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
       }));
     }
   }, [updateAccountState]);
+
+  const connectManualAddress = useCallback(
+    async (manualAddress: string) => {
+      const clean = manualAddress.trim();
+      if (!clean) return;
+      try {
+        const checksum = getAddress(clean);
+        activeAddressRef.current = checksum as `0x${string}`;
+
+        try {
+          localStorage.removeItem(DISCONNECTED_KEY);
+        } catch {}
+
+        setWalletState((prev) => ({
+          ...prev,
+          address: checksum as `0x${string}`,
+          checksumAddress: checksum,
+          chainId: MST_CHAIN_ID,
+          isConnecting: false,
+          isConnected: true,
+          isWrongNetwork: false,
+          error: null,
+        }));
+
+        fetchBalance(checksum as `0x${string}`);
+
+        fetch(`/api/user?address=${checksum}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.user?.nickname) {
+              setWalletState((prev) => ({ ...prev, nickname: data.user.nickname }));
+            }
+          })
+          .catch(() => {});
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Invalid Ethereum address format";
+        setWalletState((prev) => ({ ...prev, error: msg }));
+      }
+    },
+    [fetchBalance]
+  );
 
   const disconnectWallet = useCallback(() => {
     try {
@@ -372,6 +465,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
   const value: Web3WalletContextValue = {
     ...walletState,
     connectWallet,
+    connectManualAddress,
     disconnectWallet,
     switchNetwork,
     setNickname,
