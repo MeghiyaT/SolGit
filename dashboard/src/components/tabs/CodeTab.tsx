@@ -769,38 +769,12 @@ export function CodeTab({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Main Column: macOS Code Window Viewer (Span 8) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="macos-window bg-[#0d1117] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
-            {/* macOS Window Header with Traffic Light Dots */}
-            <div className="px-4 py-3 bg-[#161b22] border-b border-white/10 flex items-center justify-between">
-              {/* Left: macOS Traffic Lights & File Breadcrumb */}
-              <div className="flex items-center gap-3">
-                {/* Traffic Lights */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsViewerMinimized(true);
-                      if (onCopyToast) onCopyToast("Minimized file preview");
-                    }}
-                    className="macos-traffic-dot macos-traffic-close cursor-pointer"
-                    title="Close / Minimize"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsViewerMinimized(!isViewerMinimized)}
-                    className="macos-traffic-dot macos-traffic-minimize cursor-pointer"
-                    title="Minimize / Collapse"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setIsViewerFullscreen(!isViewerFullscreen)}
-                    className="macos-traffic-dot macos-traffic-expand cursor-pointer"
-                    title="Toggle Expand"
-                  />
-                </div>
-
-                {/* File Path */}
-                <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300 pl-2 border-l border-white/10">
+          <div className="bg-[#0d1117] border border-[#30363d] rounded-md overflow-hidden">
+            {/* GitHub File Header */}
+            <div className="px-4 py-2.5 bg-[#161b22] border-b border-[#30363d] flex items-center justify-between">
+              {/* Left: File Breadcrumb */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
                   <Folder className="w-3.5 h-3.5 text-emerald-400" />
                   <span className="text-zinc-500">solgit/</span>
                   <span className="font-semibold text-white">{activeFile.path}</span>

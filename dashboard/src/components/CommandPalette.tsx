@@ -381,35 +381,19 @@ export function CommandPalette({
       aria-label="SolGit Command Palette"
     >
       <div
-        className="w-full max-w-2xl bg-[#0d1117]/95 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[80vh] macos-window"
+        className="w-full max-w-2xl bg-[#161b22] border border-[#30363d] shadow-2xl rounded-xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Window Chrome / Titlebar */}
-        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-white/[0.06] select-none bg-white/[0.02]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-[#30363d] select-none bg-[#0d1117]">
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5" aria-label="Window controls">
-              <span
-                onClick={onClose}
-                className="macos-traffic-dot macos-traffic-close hover:opacity-80 cursor-pointer"
-                title="Close"
-              />
-              <span
-                onClick={onClose}
-                className="macos-traffic-dot macos-traffic-minimize hover:opacity-80 cursor-pointer"
-                title="Minimize"
-              />
-              <span
-                className="macos-traffic-dot macos-traffic-expand hover:opacity-80 cursor-pointer"
-                title="Expand"
-              />
-            </div>
-            <div className="h-3 w-px bg-white/10 ml-1" />
-            <div className="flex items-center gap-1 text-[11px] font-mono text-zinc-400">
-              <Sparkles className="h-3 w-3 text-emerald-400" />
-              <span>SolGit Spotlight</span>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-[#c9d1d9]">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+              <span className="font-semibold text-white">SolGit Search</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-[#8b949e]">
+            <span>MST Testnet: 91562037</span>
             <span>MST Testnet: 91562037</span>
           </div>
         </div>

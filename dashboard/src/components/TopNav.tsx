@@ -27,25 +27,8 @@ export function TopNav({ onOpenCommandPalette, onCopyAddress }: TopNavProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white/[0.08] bg-[#0d1117]/85 backdrop-blur-xl px-4 py-2.5 shadow-sm shadow-black/40">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 flex-wrap md:flex-nowrap">
-        {/* Left Section: macOS Traffic Lights + Branding + Breadcrumb */}
+        {/* Left Section: Branding + Breadcrumb */}
         <div className="flex items-center gap-3 min-w-0">
-          {/* macOS Window Controls */}
-          <div className="flex items-center gap-1.5 mr-1" aria-label="macOS window controls">
-            <span
-              className="macos-traffic-dot macos-traffic-close hover:opacity-80 cursor-pointer"
-              title="Close"
-            />
-            <span
-              className="macos-traffic-dot macos-traffic-minimize hover:opacity-80 cursor-pointer"
-              title="Minimize"
-            />
-            <span
-              className="macos-traffic-dot macos-traffic-expand hover:opacity-80 cursor-pointer"
-              title="Expand"
-            />
-          </div>
-
-          <div className="h-4 w-px bg-white/10 hidden sm:block" />
 
           {/* SolGit Brand & Version Pill */}
           <div className="flex items-center gap-2 flex-shrink-0">
