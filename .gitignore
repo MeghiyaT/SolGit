@@ -32,3 +32,4 @@ Thumbs.db
 # SolGit Local Runtime State
 .solgit/
 *.solgit.json
+data/

@@ -152,3 +152,4 @@ CREATE TABLE IF NOT EXISTS repositories (
 5. **Wallet Gating**: Attempt to upload without wallet connected $\rightarrow$ verify blocked with prompt. Connect wallet $\rightarrow$ verify allowed.
 6. **Relayer & Explorer Links**: Upload a contract $\rightarrow$ verify relayer deployment, check `coral.mstscan.com` links, and verify the repo appears in LeftSidebar and CodeTab.
 7. **Cache Clearance Test**: Clear `localStorage` in browser devtools $\rightarrow$ reconnect wallet $\rightarrow$ verify all repos and nickname restore automatically from Supabase.
+

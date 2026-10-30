@@ -11,14 +11,21 @@ import {
   Layers,
   CheckCircle2,
   Loader2,
+  Zap,
+  ExternalLink,
+  AlertCircle,
+  Copy,
+  Check,
 } from "lucide-react";
 import type { Repository } from "../../lib/types";
+import { MST_EXPLORER_URL } from "../../lib/mstChain";
 
 export interface NewRepoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateRepo: (repo: Repository) => void;
   defaultOwner?: string;
+  ownerAddress?: string | null;
 }
 
 const DEFAULT_SOLIDITY = `// SPDX-License-Identifier: MIT
@@ -43,11 +50,21 @@ contract SolGitDiamondFacet {
 }
 `;
 
+interface RelayerResponse {
+  success: boolean;
+  contractAddress: string;
+  txHash: string;
+  txUrl: string;
+  explorerUrl: string;
+  repository: Repository;
+}
+
 export function NewRepoModal({
   isOpen,
   onClose,
   onCreateRepo,
   defaultOwner = "mst-protocol",
+  ownerAddress,
 }: NewRepoModalProps) {
   const [repoName, setRepoName] = useState("");
   const [description, setDescription] = useState("");
@@ -59,6 +76,9 @@ export function NewRepoModal({
   // Deploying state
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStep, setDeployStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [deployResult, setDeployResult] = useState<RelayerResponse | null>(null);
+  const [copiedAddress, setCopiedAddress] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,51 +131,71 @@ export function NewRepoModal({
     setIsDragging(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedAddress(true);
+    setTimeout(() => setCopiedAddress(false), 2000);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repoName.trim() || !solCode.trim()) return;
 
+    if (!ownerAddress) {
+      setErrorMessage("Please connect your BridgeKey wallet first to deploy a smart contract repository.");
+      return;
+    }
+
     setIsDeploying(true);
+    setErrorMessage(null);
     setDeployStep(1);
 
-    // Step 1: Parsing
-    setTimeout(() => {
+    try {
+      // Step 1: Parsing
+      await new Promise((r) => setTimeout(r, 600));
       setDeployStep(2);
-      // Step 2: Diamond proxy deployment
-      setTimeout(() => {
-        setDeployStep(3);
-        // Step 3: Guardian hook attachment
-        setTimeout(() => {
-          setDeployStep(4);
-          // Step 4: Completion
-          setTimeout(() => {
-            const randomHex = Array.from({ length: 40 }, () =>
-              Math.floor(Math.random() * 16).toString(16)
-            ).join("");
-            const newAddress = `0x${randomHex}`;
 
-            const newRepo: Repository = {
-              id: `repo-${Date.now()}`,
-              name: repoName.trim().toLowerCase().replace(/\s+/g, "-"),
-              owner: defaultOwner,
-              description:
-                description.trim() ||
-                "Smart contract diamond proxy deployed on MST Blockchain Testnet.",
-              isPrivate,
-              updatedAt: "Just now",
-              contractAddress: newAddress,
-              facetCount: 2,
-              guardianActive: true,
-            };
+      // Step 2: Relayer deployment call
+      const res = await fetch("/api/relayer/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repoName: repoName.trim(),
+          description: description.trim() || "Smart contract diamond proxy deployed on MST Coral Testnet.",
+          solCode: solCode.trim(),
+          ownerAddress,
+          ownerNickname: defaultOwner,
+          isPrivate,
+        }),
+      });
 
-            onCreateRepo(newRepo);
-            setIsDeploying(false);
-            setDeployStep(0);
-            onClose();
-          }, 600);
-        }, 700);
-      }, 800);
-    }, 700);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Deployment failed with status ${res.status}`);
+      }
+
+      const data: RelayerResponse = await res.json();
+      setDeployStep(3);
+      await new Promise((r) => setTimeout(r, 600));
+
+      setDeployStep(4);
+      setDeployResult(data);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Deployment failed";
+      setErrorMessage(msg);
+      setIsDeploying(false);
+      setDeployStep(0);
+    }
+  };
+
+  const handleFinish = () => {
+    if (deployResult) {
+      onCreateRepo(deployResult.repository);
+      setDeployResult(null);
+      setIsDeploying(false);
+      setDeployStep(0);
+      onClose();
+    }
   };
 
   return (
@@ -177,14 +217,14 @@ export function NewRepoModal({
                 Create a new repository & deploy smart contract
               </h2>
               <p className="text-[11px] text-[#8b949e]">
-                Initializes an EIP-2535 Diamond Proxy with active Guardian protection on MST Blockchain
+                Initializes an EIP-2535 Diamond Proxy on MST Coral Testnet (Gasless via SolGit Relayer)
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            disabled={isDeploying}
+            disabled={isDeploying && !deployResult}
             className="text-[#8b949e] hover:text-[#f0f6fc] p-1 rounded-md transition hover:bg-[#21262d] disabled:opacity-50 cursor-pointer"
             aria-label="Close modal"
           >
@@ -193,7 +233,97 @@ export function NewRepoModal({
         </div>
 
         {/* Content */}
-        {isDeploying ? (
+        {deployResult ? (
+          <div className="p-6 space-y-5 text-center">
+            <div className="flex justify-center">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-base font-semibold text-[#f0f6fc]">
+                Diamond Contract Deployed Successfully!
+              </h3>
+              <p className="text-xs text-[#8b949e] mt-1">
+                Your repository has been persisted and registered on MST Coral Testnet.
+              </p>
+            </div>
+
+            {/* Relayer Sponsorship Banner */}
+            <div className="p-3 rounded-lg bg-emerald-950/20 border border-emerald-500/30 flex items-center justify-between text-xs text-left">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <div>
+                  <span className="font-semibold text-emerald-300">Gas Sponsored by SolGit Relayer</span>
+                  <p className="text-[11px] text-[#8b949e]">Network Fee: 0.00000 tMSTC (100% Covered)</p>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                CHAIN ID 54635
+              </span>
+            </div>
+
+            {/* Contract & TX details */}
+            <div className="p-4 rounded-lg bg-[#0d1117] border border-[#30363d] space-y-3 text-left">
+              <div>
+                <span className="text-[11px] text-[#8b949e] block mb-1">Diamond Contract Address</span>
+                <div className="flex items-center justify-between gap-2 bg-[#161b22] px-3 py-1.5 rounded border border-[#30363d]">
+                  <span className="font-mono text-xs text-emerald-400 truncate">
+                    {deployResult.contractAddress}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(deployResult.contractAddress)}
+                      className="text-[#8b949e] hover:text-white p-1 rounded transition"
+                      title="Copy Address"
+                    >
+                      {copiedAddress ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                    <a
+                      href={deployResult.explorerUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[#8b949e] hover:text-emerald-400 p-1 rounded transition"
+                      title="View on Explorer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[11px] text-[#8b949e] block mb-1">Transaction Hash</span>
+                <div className="flex items-center justify-between gap-2 bg-[#161b22] px-3 py-1.5 rounded border border-[#30363d]">
+                  <span className="font-mono text-xs text-[#c9d1d9] truncate">
+                    {deployResult.txHash}
+                  </span>
+                  <a
+                    href={deployResult.txUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[#8b949e] hover:text-emerald-400 p-1 rounded transition flex-shrink-0"
+                    title="View Transaction"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleFinish}
+                className="w-full py-2 px-4 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-semibold transition cursor-pointer shadow-sm"
+              >
+                Go to Repository
+              </button>
+            </div>
+          </div>
+        ) : isDeploying ? (
           <div className="p-8 space-y-6 text-center">
             <div className="flex justify-center">
               <div className="relative">
@@ -207,7 +337,7 @@ export function NewRepoModal({
                 Initializing Smart Contract Repository
               </h3>
               <p className="text-xs text-[#8b949e] mt-1">
-                Deploying behind an EIP-2535 Diamond Proxy on MST Blockchain (Chain ID 91562037)
+                Deploying behind an EIP-2535 Diamond Proxy on MST Coral Testnet (Chain ID 54635)
               </p>
             </div>
 
@@ -233,7 +363,7 @@ export function NewRepoModal({
                   <div className="w-4 h-4 rounded-full border border-[#30363d] flex-shrink-0" />
                 )}
                 <span className={deployStep >= 2 ? "text-[#f0f6fc]" : "text-[#8b949e]"}>
-                  2. Deploying Diamond Proxy & initial facets
+                  2. Submitting gasless deployment via SolGit Relayer
                 </span>
               </div>
 
@@ -246,7 +376,7 @@ export function NewRepoModal({
                   <div className="w-4 h-4 rounded-full border border-[#30363d] flex-shrink-0" />
                 )}
                 <span className={deployStep >= 3 ? "text-[#f0f6fc]" : "text-[#8b949e]"}>
-                  3. Attaching SolGit Guardian protection hooks
+                  3. Attaching SolGit Guardian protection hooks & registry
                 </span>
               </div>
 
@@ -257,13 +387,22 @@ export function NewRepoModal({
                   <div className="w-4 h-4 rounded-full border border-[#30363d] flex-shrink-0" />
                 )}
                 <span className={deployStep >= 4 ? "text-[#f0f6fc]" : "text-[#8b949e]"}>
-                  4. Registering in on-chain VersionRegistry
+                  4. Registering in on-chain VersionRegistry & Supabase
                 </span>
               </div>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="p-5 space-y-4 overflow-y-auto">
+            {errorMessage && (
+              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-start gap-2.5 text-xs text-rose-300">
+                <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-semibold">Deployment Error:</span> {errorMessage}
+                </div>
+              </div>
+            )}
+
             {/* Owner & Repository Name */}
             <div>
               <label htmlFor="repo-name-input" className="block text-xs font-medium text-[#f0f6fc] mb-1">
@@ -427,15 +566,25 @@ export function NewRepoModal({
               )}
             </div>
 
-            {/* Architecture Banner */}
-            <div className="p-3 rounded-lg bg-[#21262d]/60 border border-[#30363d] flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-[#8b949e]">
-                <Layers className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                <span>Architecture: <strong>EIP-2535 Diamond Proxy</strong></span>
+            {/* Architecture Banner & Gasless Relayer Tag */}
+            <div className="p-3 rounded-lg bg-[#21262d]/60 border border-[#30363d] space-y-2">
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-[#8b949e]">
+                  <Layers className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <span>Architecture: <strong>EIP-2535 Diamond Proxy</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-400">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span className="text-[11px] font-medium">Guardian Active</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-400">
-                <Shield className="w-3.5 h-3.5" />
-                <span className="text-[11px] font-medium">Guardian Active</span>
+
+              <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-[#30363d]/60 text-emerald-400">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Gasless Deployment: <strong>Sponsored by SolGit Relayer</strong></span>
+                </div>
+                <span className="text-[#8b949e]">Network: MST Coral (54635)</span>
               </div>
             </div>
 
@@ -453,8 +602,8 @@ export function NewRepoModal({
                 disabled={!repoName.trim() || !solCode.trim() || isDeploying}
                 className="px-3 py-1.5 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-medium transition shadow-sm border border-[#2ea043]/30 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Create repository & Deploy Diamond</span>
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
+                <span>Deploy via Relayer (Gasless)</span>
               </button>
             </div>
           </form>

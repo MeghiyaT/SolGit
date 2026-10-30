@@ -46,7 +46,7 @@ function DashboardApp() {
   const [isNicknameModalOpen, setIsNicknameModalOpen] = useState<boolean>(false);
   const wallet = useWeb3Wallet();
 
-  // Onboard new user without nickname
+  // Onboard new user without nickname & load user repositories
   useEffect(() => {
     if (wallet.isConnected && wallet.checksumAddress) {
       fetch(`/api/user?address=${wallet.checksumAddress}`)
@@ -62,6 +62,31 @@ function DashboardApp() {
         .catch(() => {
           setIsNicknameModalOpen(true);
         });
+
+      fetch(`/api/repos?address=${wallet.checksumAddress}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data?.repositories) && data.repositories.length > 0) {
+            const mappedRepos: Repository[] = data.repositories.map((r: any) => ({
+              id: r.id,
+              name: r.name,
+              owner: r.owner_nickname || "developer",
+              description: r.description,
+              isPrivate: Boolean(r.is_private),
+              updatedAt: r.updated_at ? new Date(r.updated_at).toLocaleDateString() : "Recently",
+              contractAddress: r.contract_address,
+              facetCount: r.facet_count || 1,
+              guardianActive: Boolean(r.guardian_active),
+            }));
+            setRepos(mappedRepos);
+            setSelectedRepoId(mappedRepos[0].id);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load user repos:", err);
+        });
+    } else {
+      setRepos([]);
     }
   }, [wallet.isConnected, wallet.checksumAddress]);
 
@@ -451,7 +476,8 @@ function DashboardApp() {
         isOpen={isNewRepoModalOpen}
         onClose={() => setIsNewRepoModalOpen(false)}
         onCreateRepo={handleCreateRepo}
-        defaultOwner={wallet.nickname || activeRepo?.owner || "developer"}
+        defaultOwner={wallet.nickname || (wallet.checksumAddress ? `${wallet.checksumAddress.slice(0, 6)}...${wallet.checksumAddress.slice(-4)}` : "developer")}
+        ownerAddress={wallet.checksumAddress}
       />
 
       {/* ──────────────────────────────────────────────────────────
