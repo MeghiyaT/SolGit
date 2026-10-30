@@ -350,6 +350,8 @@ function DashboardApp() {
           onOpenNewRepoModal={() => setIsNewRepoModalOpen(true)}
           address={wallet.checksumAddress}
           nickname={wallet.nickname}
+          isConnected={wallet.isConnected}
+          onRequireWallet={(msg) => showToast("BridgeKey Required", msg, "warning")}
           pullRequests={pullRequests}
           recentEvents={events}
           onNavigatePR={() => {

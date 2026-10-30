@@ -18,6 +18,8 @@ export interface LeftSidebarProps {
   selectedRepoId?: string;
   onSelectRepo: (repoId: string) => void;
   onOpenNewRepoModal: () => void;
+  isConnected?: boolean;
+  onRequireWallet?: (message: string) => void;
 }
 
 export function LeftSidebar({
@@ -25,9 +27,21 @@ export function LeftSidebar({
   selectedRepoId,
   onSelectRepo,
   onOpenNewRepoModal,
+  isConnected = false,
+  onRequireWallet,
 }: LeftSidebarProps) {
   const [activeNav, setActiveNav] = useState<"home" | "feed">("home");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const handleNewClick = () => {
+    if (!isConnected) {
+      onRequireWallet?.(
+        "BridgeKey Wallet Required: Please connect your BridgeKey wallet to create repositories and deploy smart contracts on MST Coral."
+      );
+      return;
+    }
+    onOpenNewRepoModal();
+  };
 
   const filteredRepos = repos.filter((repo) =>
     `${repo.owner}/${repo.name}`.toLowerCase().includes(searchQuery.toLowerCase().trim())
@@ -70,7 +84,7 @@ export function LeftSidebar({
           <h2 className="font-semibold text-[#f0f6fc] text-xs">Top repositories</h2>
           <button
             type="button"
-            onClick={onOpenNewRepoModal}
+            onClick={handleNewClick}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white font-medium text-xs transition shadow-sm border border-[#2ea043]/30 cursor-pointer"
             title="Create a new repository"
           >
@@ -137,9 +151,29 @@ export function LeftSidebar({
                 </button>
               );
             })
-          ) : (
+          ) : searchQuery ? (
             <div className="p-4 text-center text-[#8b949e] bg-[#161b22]/50 border border-[#30363d] rounded-md">
               <p>No repositories found matching &ldquo;{searchQuery}&rdquo;</p>
+            </div>
+          ) : (
+            <div className="py-8 px-4 text-center rounded-lg border border-dashed border-[#30363d] bg-[#161b22]/40 space-y-3">
+              <div className="inline-flex p-2.5 rounded-full bg-[#21262d] border border-[#30363d] text-[#8b949e]">
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="font-semibold text-xs text-[#f0f6fc]">No repositories yet</div>
+                <p className="text-[11px] text-[#8b949e] leading-relaxed">
+                  Deploy a smart contract to create your first repository on MST Coral.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleNewClick}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#238636] hover:bg-[#2ea043] text-white font-medium text-xs transition shadow-sm border border-[#2ea043]/30 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Create repository</span>
+              </button>
             </div>
           )}
         </div>

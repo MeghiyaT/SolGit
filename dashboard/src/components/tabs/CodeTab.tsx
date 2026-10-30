@@ -249,7 +249,7 @@ export function CodeTab({
 
   // Parse lines for code window
   const lines = useMemo(() => {
-    return activeFile.content.split("\n");
+    return activeFile?.content ? activeFile.content.split("\n") : [];
   }, [activeFile]);
 
   const tokenizedLines = useMemo(() => {

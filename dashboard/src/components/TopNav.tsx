@@ -11,6 +11,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { WalletButton } from "./wallet/WalletButton";
+import { useWeb3Wallet } from "../hooks/useWeb3Wallet";
 import type { ViewType } from "../lib/types";
 
 export interface TopNavProps {
@@ -39,6 +40,20 @@ export function TopNav({
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [hasNotifications, setHasNotifications] = useState(true);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const wallet = useWeb3Wallet();
+
+  const handleCreateNewClick = () => {
+    setIsCreateOpen(false);
+    if (!wallet.isConnected) {
+      onActionToast?.(
+        "BridgeKey Required",
+        "Please connect your BridgeKey wallet to create repositories and deploy contracts on MST Coral.",
+        "warning"
+      );
+      return;
+    }
+    onOpenNewRepoModal();
+  };
 
   // Close create menu on click outside
   useEffect(() => {
@@ -152,10 +167,7 @@ export function TopNav({
               >
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    onOpenNewRepoModal();
-                  }}
+                  onClick={handleCreateNewClick}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-[#c9d1d9] hover:bg-[#21262d] hover:text-[#58a6ff] transition text-left cursor-pointer"
                 >
                   <BookOpen className="w-4 h-4 text-[#8b949e]" />
@@ -167,10 +179,7 @@ export function TopNav({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false);
-                    onOpenNewRepoModal();
-                  }}
+                  onClick={handleCreateNewClick}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-[#c9d1d9] hover:bg-[#21262d] hover:text-emerald-400 transition text-left cursor-pointer"
                 >
                   <UploadCloud className="w-4 h-4 text-[#8b949e]" />

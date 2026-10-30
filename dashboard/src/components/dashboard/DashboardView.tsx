@@ -13,6 +13,8 @@ export interface DashboardViewProps {
   onOpenNewRepoModal: () => void;
   address: string | null;
   nickname?: string | null;
+  isConnected?: boolean;
+  onRequireWallet?: (message: string) => void;
   pullRequests: PullRequestItem[];
   recentEvents: RollbackEvent[];
   onNavigatePR: (prId: number) => void;
@@ -28,6 +30,8 @@ export function DashboardView({
   onOpenNewRepoModal,
   address,
   nickname,
+  isConnected = false,
+  onRequireWallet,
   pullRequests,
   recentEvents,
   onNavigatePR,
@@ -45,6 +49,8 @@ export function DashboardView({
             selectedRepoId={selectedRepoId}
             onSelectRepo={onSelectRepo}
             onOpenNewRepoModal={onOpenNewRepoModal}
+            isConnected={isConnected}
+            onRequireWallet={onRequireWallet}
           />
         </div>
 
