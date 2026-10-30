@@ -45,8 +45,8 @@ export function RepoHeader({
     if (onActionToast) {
       onActionToast(
         nextStarred
-          ? "Starred mst-protocol/solgit-vault-diamond ⭐"
-          : "Removed star from mst-protocol/solgit-vault-diamond"
+          ? `Starred ${owner}/${repoName} ⭐`
+          : `Removed star from ${owner}/${repoName}`
       );
     }
   };
@@ -58,8 +58,8 @@ export function RepoHeader({
     if (onActionToast) {
       onActionToast(
         nextWatching
-          ? "Watching mst-protocol/solgit-vault-diamond (All Activity)"
-          : "Unwatched mst-protocol/solgit-vault-diamond"
+          ? `Watching ${owner}/${repoName} (All Activity)`
+          : `Unwatched ${owner}/${repoName}`
       );
     }
   };
@@ -69,11 +69,11 @@ export function RepoHeader({
       setIsForked(true);
       setForkCount((prev) => prev + 1);
       if (onActionToast) {
-        onActionToast("Forked mst-protocol/solgit-vault-diamond to personal workspace 🍴");
+        onActionToast(`Forked ${owner}/${repoName} to personal workspace 🍴`);
       }
     } else {
       if (onActionToast) {
-        onActionToast("Already forked to developer/solgit-vault-diamond");
+        onActionToast(`Already forked ${owner}/${repoName}`);
       }
     }
   };

@@ -17,18 +17,18 @@ export interface SolGitConfig {
 }
 
 export const mstTestnet = defineChain({
-  id: 91562037,
-  name: "MST Testnet",
+  id: 54635,
+  name: "MST Coral Testnet",
   nativeCurrency: {
     decimals: 18,
     name: "tMSTC",
     symbol: "tMSTC",
   },
   rpcUrls: {
-    default: { http: ["https://testnetrpc.mstblockchain.com"] },
+    default: { http: ["https://coralrpc.mstblockchain.com"] },
   },
   blockExplorers: {
-    default: { name: "MSTScan", url: "https://testnet.mstscan.com" },
+    default: { name: "MSTScan", url: "https://coral.mstscan.com" },
   },
 });
 
@@ -56,8 +56,8 @@ export function loadConfig(cwd: string = process.cwd()): SolGitConfig {
     }
   }
 
-  const rpcUrl = fileConfig.rpcUrl || process.env.MST_TESTNET_RPC_URL || process.env.RPC_URL || "https://testnetrpc.mstblockchain.com";
-  const chainId = fileConfig.chainId || (rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost") ? 31337 : 91562037);
+  const rpcUrl = fileConfig.rpcUrl || process.env.MST_TESTNET_RPC_URL || process.env.RPC_URL || "https://coralrpc.mstblockchain.com";
+  const chainId = fileConfig.chainId || (rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost") ? 31337 : 54635);
   const routerAddress = (fileConfig.routerAddress || process.env.ROUTER_ADDRESS) as Address | undefined;
   const registryAddress = (fileConfig.registryAddress || process.env.REGISTRY_ADDRESS) as Address | undefined;
   const privateKey = (fileConfig.privateKey || process.env.PRIVATE_KEY) as `0x${string}` | undefined;

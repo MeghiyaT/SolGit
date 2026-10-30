@@ -4,8 +4,8 @@ export async function initCommand(options) {
     const current = loadConfig();
     const diamondAddr = (options.diamond || options.router || current.diamondAddress || current.routerAddress);
     const config = {
-        rpcUrl: options.rpc || current.rpcUrl || "https://testnetrpc.mstblockchain.com",
-        chainId: options.chainId ? parseInt(options.chainId, 10) : current.chainId || 91562037,
+        rpcUrl: options.rpc || current.rpcUrl || "https://coralrpc.mstblockchain.com",
+        chainId: options.chainId ? parseInt(options.chainId, 10) : current.chainId || 54635,
         diamondAddress: diamondAddr,
         routerAddress: diamondAddr,
         registryAddress: (options.registry || current.registryAddress),

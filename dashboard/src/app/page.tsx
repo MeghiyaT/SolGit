@@ -305,6 +305,7 @@ function DashboardApp() {
   const handleCreateRepo = useCallback((newRepo: Repository) => {
     setRepos((prev) => [newRepo, ...prev]);
     setSelectedRepoId(newRepo.id);
+    setSelectedFile(`${newRepo.name}.sol`);
     setCurrentView("repository");
     setActiveTab("code");
     showToast(
@@ -397,6 +398,10 @@ function DashboardApp() {
           selectedRepoId={selectedRepoId || ""}
           onSelectRepo={(id) => {
             setSelectedRepoId(id);
+            const found = repos.find((r) => r.id === id);
+            if (found) {
+              setSelectedFile(`${found.name}.sol`);
+            }
             setCurrentView("repository");
           }}
           onOpenNewRepoModal={() => setIsNewRepoModalOpen(true)}

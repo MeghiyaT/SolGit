@@ -231,11 +231,13 @@ export function CodeTab({
 
   // Resolve currently active file
   const activeFile: RepoFile = useMemo(() => {
-    const matched =
-      dynamicFiles.find((f) => f.name === selectedFile || f.path === selectedFile) ||
-      REPO_FILES_MAP[selectedFile];
-    return matched || dynamicFiles[0] || REPO_FILES[0];
-  }, [dynamicFiles, selectedFile]);
+    const matched = dynamicFiles.find(
+      (f) => f.name === selectedFile || f.path === selectedFile
+    );
+    if (matched) return matched;
+    if (activeRepo?.solCode) return dynamicFiles[0];
+    return REPO_FILES_MAP[selectedFile] || dynamicFiles[0] || REPO_FILES[0];
+  }, [dynamicFiles, selectedFile, activeRepo]);
 
   // Handle outside clicks to close popovers
   useEffect(() => {

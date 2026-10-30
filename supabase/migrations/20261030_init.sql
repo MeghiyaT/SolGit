@@ -55,3 +55,4 @@ BEGIN
         CREATE POLICY "Allow public insert/update on repositories" ON public.repositories FOR ALL USING (true);
     END IF;
 END $$;
+

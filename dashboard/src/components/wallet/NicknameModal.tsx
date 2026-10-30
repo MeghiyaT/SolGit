@@ -25,9 +25,11 @@ export function NicknameModal({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [prevOpen, setPrevOpen] = useState(isOpen);
+  const [prevAddress, setPrevAddress] = useState(address);
 
-  if (isOpen !== prevOpen) {
+  if (isOpen !== prevOpen || address !== prevAddress) {
     setPrevOpen(isOpen);
+    setPrevAddress(address);
     if (isOpen) {
       setNickname(currentNickname || "");
       setError(null);

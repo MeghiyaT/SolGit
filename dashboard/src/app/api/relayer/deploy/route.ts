@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAddress } from "viem";
 import { deployViaRelayer } from "../../../../lib/relayer";
 
 export async function POST(request: NextRequest) {
@@ -9,6 +10,13 @@ export async function POST(request: NextRequest) {
     if (!repoName || !solCode || !ownerAddress) {
       return NextResponse.json(
         { error: "Missing required fields (repoName, ownerAddress, solCode)" },
+        { status: 400 }
+      );
+    }
+
+    if (!isAddress(ownerAddress)) {
+      return NextResponse.json(
+        { error: "Invalid ownerAddress format" },
         { status: 400 }
       );
     }

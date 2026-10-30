@@ -21,10 +21,10 @@ import { createPullRequest } from "./pr.js";
 dotenv.config();
 
 export const mstTestnet = defineChain({
-  id: 91562037,
-  name: "MST Testnet",
+  id: 54635,
+  name: "MST Coral Testnet",
   nativeCurrency: { name: "tMSTC", symbol: "tMSTC", decimals: 18 },
-  rpcUrls: { default: { http: ["https://testnetrpc.mstblockchain.com"] } },
+  rpcUrls: { default: { http: ["https://coralrpc.mstblockchain.com"] } },
 });
 
 export const selectorRolledBackEvent = parseAbiItem(
@@ -42,7 +42,7 @@ export async function executeGuardianRollback(
   guardianPrivateKey?: Hex,
   rpcUrl?: string
 ): Promise<Hex | null> {
-  const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://testnetrpc.mstblockchain.com";
+  const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://coralrpc.mstblockchain.com";
   const pkey = (guardianPrivateKey || process.env.GUARDIAN_PRIVATE_KEY || process.env.PRIVATE_KEY) as Hex;
 
   if (!pkey) {
@@ -137,7 +137,7 @@ export async function processRollback(
 }
 
 export async function startWatcher(diamondAddress?: Address, rpcUrl?: string) {
-  const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://testnetrpc.mstblockchain.com";
+  const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://coralrpc.mstblockchain.com";
   const diamond = (diamondAddress || process.env.DIAMOND_ADDRESS) as Address;
 
   console.log(chalk.bold("\n=== SolGit AI Watcher Service (EIP-2535 Guardian Defense) ==="));

@@ -16,8 +16,8 @@ export async function initCommand(options: {
   const diamondAddr = (options.diamond || options.router || current.diamondAddress || current.routerAddress) as Address | undefined;
 
   const config: SolGitConfig = {
-    rpcUrl: options.rpc || current.rpcUrl || "https://testnetrpc.mstblockchain.com",
-    chainId: options.chainId ? parseInt(options.chainId, 10) : current.chainId || 91562037,
+    rpcUrl: options.rpc || current.rpcUrl || "https://coralrpc.mstblockchain.com",
+    chainId: options.chainId ? parseInt(options.chainId, 10) : current.chainId || 54635,
     diamondAddress: diamondAddr,
     routerAddress: diamondAddr,
     registryAddress: (options.registry || current.registryAddress) as Address | undefined,

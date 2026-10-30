@@ -8,17 +8,17 @@ import { generateFix } from "./fixer.js";
 import { createPullRequest } from "./pr.js";
 dotenv.config();
 export const mstTestnet = defineChain({
-    id: 91562037,
-    name: "MST Testnet",
+    id: 54635,
+    name: "MST Coral Testnet",
     nativeCurrency: { name: "tMSTC", symbol: "tMSTC", decimals: 18 },
-    rpcUrls: { default: { http: ["https://testnetrpc.mstblockchain.com"] } },
+    rpcUrls: { default: { http: ["https://coralrpc.mstblockchain.com"] } },
 });
 export const selectorRolledBackEvent = parseAbiItem("event SelectorRolledBack(bytes4 indexed selector, address indexed oldFacet, address indexed newFacet, string reason)");
 /**
  * Executes on-chain emergency rollback via Guardian role on SolGitDiamond
  */
 export async function executeGuardianRollback(diamondAddress, selector, targetStableFacet, reason, guardianPrivateKey, rpcUrl) {
-    const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://testnetrpc.mstblockchain.com";
+    const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://coralrpc.mstblockchain.com";
     const pkey = (guardianPrivateKey || process.env.GUARDIAN_PRIVATE_KEY || process.env.PRIVATE_KEY);
     if (!pkey) {
         console.log(chalk.yellow("  [Guardian] No private key provided. Running rollback in simulation mode."));
@@ -85,7 +85,7 @@ export async function processRollback(incident, options) {
     }
 }
 export async function startWatcher(diamondAddress, rpcUrl) {
-    const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://testnetrpc.mstblockchain.com";
+    const rpc = rpcUrl || process.env.MST_TESTNET_RPC_URL || "https://coralrpc.mstblockchain.com";
     const diamond = (diamondAddress || process.env.DIAMOND_ADDRESS);
     console.log(chalk.bold("\n=== SolGit AI Watcher Service (EIP-2535 Guardian Defense) ==="));
     console.log(`RPC Endpoint:    ${rpc}`);
