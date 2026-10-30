@@ -122,7 +122,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
           isConnecting: false,
           isConnected: true,
           isWrongNetwork: isWrong,
-          error: isWrong ? `Connected to unsupported chain (ID: ${currentChainId}). Please switch to MST Testnet.` : null,
+          error: isWrong ? `Connected to unsupported chain (ID: ${currentChainId}). Please switch to MST Coral Testnet (54635).` : null,
         }));
 
         // Query balance on MST Testnet
@@ -182,7 +182,33 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
 
       await updateAccountState(accounts, chainIdHex);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "User rejected wallet connection";
+      let message = "User rejected wallet connection";
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (
+        err &&
+        typeof err === "object" &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string"
+      ) {
+        message = (err as { message: string }).message;
+      }
+
+      const code =
+        err && typeof err === "object" && "code" in err ? (err as { code: unknown }).code : null;
+
+      if (
+        code === 4001 ||
+        message.toLowerCase().includes("user rejected") ||
+        message.toLowerCase().includes("rejected")
+      ) {
+        message =
+          "Connection request was cancelled or dismissed in BridgeKey. Please click 'Connect BridgeKey' and approve the prompt.";
+      } else if (code === -32002 || message.toLowerCase().includes("already pending")) {
+        message =
+          "Connection request is already pending in BridgeKey. Please open the BridgeKey window or tab to approve.";
+      }
+
       setWalletState((prev) => ({
         ...prev,
         isConnecting: false,
@@ -325,7 +351,7 @@ export function Web3WalletProvider({ children }: { children: ReactNode }) {
         ...prev,
         chainId: newChainId,
         isWrongNetwork: isWrong,
-        error: isWrong ? `Connected to unsupported chain (ID: ${newChainId}). Please switch to MST Testnet.` : null,
+        error: isWrong ? `Connected to unsupported chain (ID: ${newChainId}). Please switch to MST Coral Testnet (54635).` : null,
       }));
       if (activeAddressRef.current) {
         fetchBalance(activeAddressRef.current);
