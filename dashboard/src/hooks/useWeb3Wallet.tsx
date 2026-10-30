@@ -346,3 +346,4 @@ export function useWeb3Wallet(): Web3WalletContextValue {
   }
   return context;
 }
+

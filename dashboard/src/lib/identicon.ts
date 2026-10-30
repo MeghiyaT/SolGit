@@ -26,3 +26,4 @@ export function getIdenticonGrid(address: string): { grid: boolean[][]; color: s
 
   return { grid, color };
 }
+

@@ -927,3 +927,5 @@ export const INITIAL_PR: PullRequestItem = {
   additions: 12,
   deletions: 8,
 };
+
+export const INITIAL_PULL_REQUESTS: PullRequestItem[] = [INITIAL_PR];

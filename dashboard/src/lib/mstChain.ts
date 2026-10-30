@@ -52,3 +52,4 @@ export function generateIdenticonGradient(address: string): string {
 
   return `linear-gradient(${angle}deg, hsl(${hue1}, 75%, 45%), hsl(${hue2}, 85%, 55%))`;
 }
+
