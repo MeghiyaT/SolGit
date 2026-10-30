@@ -218,6 +218,24 @@ export const VersionRegistryABI = [
     },
     {
         "type": "function",
+        "name": "manualRevert",
+        "inputs": [
+            {
+                "name": "selector",
+                "type": "bytes4",
+                "internalType": "bytes4"
+            },
+            {
+                "name": "targetVersion",
+                "type": "uint32",
+                "internalType": "uint32"
+            }
+        ],
+        "outputs": [],
+        "stateMutability": "nonpayable"
+    },
+    {
+        "type": "function",
         "name": "pushVersion",
         "inputs": [
             {
