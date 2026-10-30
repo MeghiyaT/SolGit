@@ -22,57 +22,12 @@ export type {
   Repository,
 };
 
-export const INITIAL_REPOSITORIES: Repository[] = [
-  {
-    id: "repo-1",
-    name: "solgit-vault-diamond",
-    owner: "mst-protocol",
-    description: "Self-healing EIP-2535 Diamond Proxy vault with automated SolGit Guardian circuit breakers on MST Blockchain.",
-    isPrivate: false,
-    updatedAt: "2 hours ago",
-    contractAddress: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
-    facetCount: 4,
-    guardianActive: true,
-  },
-  {
-    id: "repo-2",
-    name: "solgit-guardian",
-    owner: "mst-protocol",
-    description: "Autonomous pre/post transaction invariant watcher and execution reverser for Diamond cuts.",
-    isPrivate: false,
-    updatedAt: "1 day ago",
-    contractAddress: "0x6A7CC7e4500f95a14471d2425403cd31c09D5e27",
-    facetCount: 1,
-    guardianActive: true,
-  },
-  {
-    id: "repo-3",
-    name: "version-registry",
-    owner: "mst-protocol",
-    description: "On-chain Git-style VersionRegistry mapping function selectors to immutable bytecode hashes.",
-    isPrivate: false,
-    updatedAt: "3 days ago",
-    contractAddress: "0x2c26812168e4F6677047407AAD1aA0ef4180Df3d",
-    facetCount: 1,
-    guardianActive: false,
-  },
-  {
-    id: "repo-4",
-    name: "mst-dex-swap",
-    owner: "mst-protocol",
-    description: "Multi-facet decentralized exchange router with automated slippage protection.",
-    isPrivate: true,
-    updatedAt: "5 days ago",
-    contractAddress: "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7",
-    facetCount: 3,
-    guardianActive: true,
-  },
-];
+export const INITIAL_REPOSITORIES: Repository[] = [];
 
 export const CONTRACTS = {
-  chainId: 91562037,
-  rpcUrl: "https://testnetrpc.mstblockchain.com",
-  explorer: "https://testnet.mstscan.com",
+  chainId: 54635,
+  rpcUrl: "https://coralrpc.mstblockchain.com",
+  explorer: "https://coral.mstscan.com",
   diamond: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
   router: "0xCEe1d6467040c32185dBC60afAc508266b3D19EB",
   registry: "0x2c26812168e4F6677047407AAD1aA0ef4180Df3d",
@@ -84,109 +39,9 @@ export const CONTRACTS = {
   attacker: "0x67852244E41F39CA15605264536E94BaBf56A4e7",
 };
 
-export const INITIAL_SELECTORS: SelectorFeature[] = [
-  {
-    selector: "0x2e1a7d4d",
-    signature: "withdraw(uint256)",
-    name: "Withdraw",
-    description: "Withdraws native tMSTC from the user's allocated vault balance.",
-    currentVersion: 2,
-    stableVersion: 1,
-    history: [
-      {
-        version: 1,
-        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
-        codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
-        status: "Stable",
-        timestamp: Date.now() - 3600000 * 24,
-        author: "0xF880...416B",
-        message: "feat: initial safe withdraw with balance checks and CEI",
-      },
-      {
-        version: 2,
-        implementation: "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7",
-        codeHash: "0x51171a8a3d9e4750beeeb90b7afb898dc1a6f67fcb591a2fe3752d4b6200e2db",
-        status: "Active",
-        timestamp: Date.now() - 3600000 * 2,
-        author: "0x5678...contributor",
-        message: "perf(withdraw): optimize gas using unchecked math (contains underflow bug)",
-      },
-    ],
-  },
-  {
-    selector: "0xd0e30db0",
-    signature: "deposit()",
-    name: "Deposit",
-    description: "Accepts native tMSTC deposit and credits msg.sender balance.",
-    currentVersion: 1,
-    stableVersion: 1,
-    history: [
-      {
-        version: 1,
-        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
-        codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
-        status: "Stable",
-        timestamp: Date.now() - 3600000 * 24,
-        author: "0xF880...416B",
-        message: "feat: initial safe deposit facet",
-      },
-    ],
-  },
-  {
-    selector: "0xa9059cbb",
-    signature: "transfer(address,uint256)",
-    name: "Transfer",
-    description: "Transfers internal vault balance between accounts without external calls.",
-    currentVersion: 1,
-    stableVersion: 1,
-    history: [
-      {
-        version: 1,
-        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
-        codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
-        status: "Stable",
-        timestamp: Date.now() - 3600000 * 24,
-        author: "0xF880...416B",
-        message: "feat: internal vault balance transfer",
-      },
-    ],
-  },
-  {
-    selector: "0x70a08231",
-    signature: "balanceOf(address)",
-    name: "BalanceOf",
-    description: "View function querying diamond storage slot for account balance.",
-    currentVersion: 1,
-    stableVersion: 1,
-    history: [
-      {
-        version: 1,
-        implementation: "0xF717aaE8398DA7E340c781418992b80D692253f8",
-        codeHash: "0xd6cde33a56d71c721227303a893cc00c557eb6e6daf271f6679d1e487df7ff9f",
-        status: "Stable",
-        timestamp: Date.now() - 3600000 * 24,
-        author: "0xF880...416B",
-        message: "feat: balanceOf view accessor",
-      },
-    ],
-  },
-];
+export const INITIAL_SELECTORS: SelectorFeature[] = [];
 
-export const INITIAL_EVENTS: RollbackEvent[] = [
-  {
-    id: "evt-1",
-    selector: "0x2e1a7d4d",
-    badVersion: 2,
-    goodVersion: 1,
-    triggeredBy: "0x9dF0C6b0066D5317aA5b38B36850548DaCCa6B4e",
-    contextHash: "0xa3f8c12b98402a...c0d1e2f3",
-    txHash: "0x89abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567",
-    blockNumber: 120485,
-    timestamp: "Just now",
-    status: "BLOCKED & ROLLED BACK",
-    invariant: "OUTFLOW_CAP (100 tMSTC max single-tx limit)",
-  },
-];
+export const INITIAL_EVENTS: RollbackEvent[] = [];
 
 export const V1_CODE = `// SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
@@ -906,26 +761,4 @@ export const REPO_FILES_MAP: Record<string, RepoFile> = REPO_FILES.reduce(
   {} as Record<string, RepoFile>
 );
 
-export const INITIAL_PR: PullRequestItem = {
-  id: 42,
-  title: "[SolGit AI Fix] Secure withdraw underflow patch",
-  status: "open",
-  author: "0xAI-Watcher-Bot",
-  branchFrom: "solgit-fix-0x2e1a7d-v2",
-  branchTo: "main",
-  createdAt: "10 minutes ago",
-  commentsCount: 3,
-  description:
-    "Automated patch generated following an invariant violation detection on selector 0x2e1a7d4d (withdraw). The previous implementation in VaultV2 lacked user balance validation before arithmetic operations, allowing an integer underflow exploit. This PR enforces strict Checks-Effects-Interactions (CEI) and standard checked subtraction, fully restoring OUTFLOW_CAP and balance invariants.",
-  checks: [
-    { name: "Automated Foundry Tests (7/7 passed)", status: "passed", duration: "1.4s" },
-    { name: "Invariant Verification (OUTFLOW_CAP safe)", status: "passed", duration: "2.8s" },
-    { name: "Slither Static Analysis (0 vulnerabilities)", status: "passed", duration: "0.9s" },
-    { name: "Diamond Storage Collision Check", status: "passed", duration: "0.5s" },
-  ],
-  filesChanged: 1,
-  additions: 12,
-  deletions: 8,
-};
-
-export const INITIAL_PULL_REQUESTS: PullRequestItem[] = [INITIAL_PR];
+export const INITIAL_PULL_REQUESTS: PullRequestItem[] = [];

@@ -1,13 +1,13 @@
 import { defineChain, getAddress, type Chain } from "viem";
 
-export const MST_CHAIN_ID = 91562037;
-export const MST_RPC_URL = "https://testnetrpc.mstblockchain.com";
+export const MST_CHAIN_ID = 54635;
+export const MST_RPC_URL = "https://coralrpc.mstblockchain.com";
 export const MST_FAUCET_URL = "https://faucet.mstblockchain.com";
-export const MST_EXPLORER_URL = "https://testnet.mstscan.com";
+export const MST_EXPLORER_URL = "https://coral.mstscan.com";
 
 export const mstTestnet: Chain = defineChain({
   id: MST_CHAIN_ID,
-  name: "MST Blockchain Testnet",
+  name: "MST Coral Testnet",
   nativeCurrency: {
     decimals: 18,
     name: "MST Coin",
@@ -20,7 +20,7 @@ export const mstTestnet: Chain = defineChain({
   },
   blockExplorers: {
     default: {
-      name: "MST Explorer",
+      name: "MST Coral Explorer",
       url: MST_EXPLORER_URL,
     },
   },

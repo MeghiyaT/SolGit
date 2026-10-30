@@ -1,15 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mstTestnet, formatAddress, generateIdenticonGradient } from "../lib/mstChain.ts";
+import { mstTestnet, MST_CHAIN_ID, MST_RPC_URL, MST_EXPLORER_URL, formatAddress, generateIdenticonGradient } from "../lib/mstChain.ts";
+import { INITIAL_REPOSITORIES, INITIAL_SELECTORS, INITIAL_EVENTS, INITIAL_PULL_REQUESTS, CONTRACTS } from "../lib/data.ts";
 import { getAddress } from "viem";
 
-test("mstTestnet chain definition matches MST specification", () => {
-  assert.equal(mstTestnet.id, 91562037);
-  assert.equal(mstTestnet.name, "MST Blockchain Testnet");
+test("mstTestnet chain definition matches MST Coral Testnet specification", () => {
+  assert.equal(mstTestnet.id, 54635);
+  assert.equal(MST_CHAIN_ID, 54635);
+  assert.equal(mstTestnet.name, "MST Coral Testnet");
   assert.equal(mstTestnet.nativeCurrency.symbol, "tMSTC");
   assert.equal(mstTestnet.nativeCurrency.decimals, 18);
-  assert.equal(mstTestnet.rpcUrls.default.http[0], "https://testnetrpc.mstblockchain.com");
-  assert.equal(mstTestnet.blockExplorers?.default.url, "https://testnet.mstscan.com");
+  assert.equal(mstTestnet.rpcUrls.default.http[0], "https://coralrpc.mstblockchain.com");
+  assert.equal(MST_RPC_URL, "https://coralrpc.mstblockchain.com");
+  assert.equal(mstTestnet.blockExplorers?.default.url, "https://coral.mstscan.com");
+  assert.equal(MST_EXPLORER_URL, "https://coral.mstscan.com");
+  assert.equal(CONTRACTS.chainId, 54635);
+  assert.equal(CONTRACTS.rpcUrl, "https://coralrpc.mstblockchain.com");
+  assert.equal(CONTRACTS.explorer, "https://coral.mstscan.com");
+});
+
+test("mock data is removed and starts as clean slate", () => {
+  assert.equal(INITIAL_REPOSITORIES.length, 0);
+  assert.equal(INITIAL_SELECTORS.length, 0);
+  assert.equal(INITIAL_EVENTS.length, 0);
+  assert.equal(INITIAL_PULL_REQUESTS.length, 0);
 });
 
 test("formatAddress produces truncated checksummed address", () => {
