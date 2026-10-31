@@ -1008,7 +1008,7 @@ export function CodeTab({
                 <div className="text-zinc-300 flex items-center justify-between">
                   <span className="text-zinc-500">Explorer:</span>
                   <a
-                    href={`https://coralscan.mstblockchain.com/address/${activeRepo?.contractAddress || CONTRACTS.diamond}`}
+                    href={`https://coral.mstscan.com/address/${activeRepo?.contractAddress || CONTRACTS.diamond}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-cyan-400 hover:underline flex items-center gap-1"

@@ -67,7 +67,7 @@ export function RepoHeader({
           </div>
 
           <a
-            href="https://coralscan.mstblockchain.com"
+            href="https://coral.mstscan.com"
             target="_blank"
             rel="noreferrer"
             className="hidden sm:flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition"
