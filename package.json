@@ -4,7 +4,8 @@
   "scripts": {
     "test": "forge test",
     "demo": "bash demo.sh",
-    "build": "forge build && npm --prefix cli run build && npm --prefix watcher run build && npm --prefix dashboard run build"
+    "demo:dapp": "npm --prefix demo-dapp run dev",
+    "build": "forge build && npm --prefix cli run build && npm --prefix watcher run build && npm --prefix dashboard run build && npm --prefix demo-dapp run build"
   },
   "dependencies": {
     "@mstblockchain/mst-vibe-kit": "^0.1.1"

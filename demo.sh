@@ -11,7 +11,7 @@ echo ""
 
 echo "▶ Step 1: Running Foundry Smart Contract Test Suite..."
 forge test
-echo "✔ Smart contracts verified (28 tests passed)."
+echo "✔ Smart contracts verified (37 tests passed)."
 echo ""
 
 echo "▶ Step 2: Building Developer CLI and Watcher..."
