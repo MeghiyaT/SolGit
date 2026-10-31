@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { execSync } from "child_process";
 import chalk from "chalk";
+import { UnifiedAIClient } from "./lib/ai.js";
 export async function generateFix(incident) {
     console.log(chalk.bold(`\n[AI Fixer] Analyzing vulnerable facet for quarantined selector ${incident.selector}...`));
     // Find project root directory
@@ -9,84 +10,81 @@ export async function generateFix(incident) {
     if (!fs.existsSync(path.join(rootDir, "src", "facets")) && fs.existsSync(path.join(rootDir, "..", "src", "facets"))) {
         rootDir = path.resolve(rootDir, "..");
     }
-    const v2Path = path.join(rootDir, "src", "facets", "VaultV2.sol");
-    let sourceCode = "";
-    if (fs.existsSync(v2Path)) {
-        sourceCode = fs.readFileSync(v2Path, "utf-8");
+    // Identify vulnerable facet file (defaulting to VaultV2.sol)
+    let targetFacetFile = "VaultV2.sol";
+    let targetContractName = "VaultV2";
+    const facetsDir = path.join(rootDir, "src", "facets");
+    if (fs.existsSync(path.join(facetsDir, "VaultV2.sol"))) {
+        targetFacetFile = "VaultV2.sol";
+        targetContractName = "VaultV2";
     }
-    let fixedCode = sourceCode;
-    let explanation = "";
-    // Vulnerability Detection Engine (Slither & Invariant heuristics)
-    if (sourceCode.includes("unchecked") && sourceCode.includes("vs.balances[msg.sender] -= amount")) {
-        console.log(chalk.yellow("  ✔ Detected vulnerability: Unchecked arithmetic underflow in withdraw() without balance check."));
-        const targetPattern = /function withdraw\(uint256 amount\) external {[\s\S]*?emit Withdrawn\(msg\.sender, amount\);\s*}/;
-        const secureWithdraw = `function withdraw(uint256 amount) external {
-        if (amount == 0) revert SolGitErrors.InvalidVersion();
-
-        VaultStorage.Layout storage vs = VaultStorage.layout();
-
-        // FIX: Verify user has sufficient balance (CEI pattern)
-        if (vs.balances[msg.sender] < amount) revert SolGitErrors.Unauthorized();
-
-        // Checked arithmetic prevents underflow
-        vs.balances[msg.sender] -= amount;
-        vs.totalDeposits -= amount;
-
-        // Interactions
-        (bool ok, ) = msg.sender.call{value: amount}("");
-        if (!ok) revert SolGitErrors.Unauthorized();
-
-        emit Withdrawn(msg.sender, amount);
-    }`;
-        fixedCode = sourceCode.replace(targetPattern, secureWithdraw);
-        explanation = "Fixed unchecked arithmetic underflow in withdraw(): enforced Checks-Effects-Interactions (CEI), added balance check vs.balances[msg.sender] >= amount, and replaced unchecked subtraction with safe arithmetic.";
+    else if (fs.existsSync(facetsDir)) {
+        const files = fs.readdirSync(facetsDir);
+        for (const file of files) {
+            if (file.endsWith(".sol") && !file.includes("Fixed") && !file.includes("V1")) {
+                const content = fs.readFileSync(path.join(facetsDir, file), "utf-8");
+                if (content.includes("unchecked") || content.includes(incident.selector)) {
+                    targetFacetFile = file;
+                    targetContractName = file.replace(".sol", "");
+                    break;
+                }
+            }
+        }
+    }
+    const vPath = path.join(facetsDir, targetFacetFile);
+    let sourceCode = "";
+    if (fs.existsSync(vPath)) {
+        sourceCode = fs.readFileSync(vPath, "utf-8");
     }
     else {
-        explanation = "Applied security hardening: added strict balance verification and nonReentrant protections.";
+        throw new Error(`Facet file not found: ${vPath}`);
     }
-    // Generate diff representation
-    const diff = `--- a/src/facets/VaultV2.sol
-+++ b/src/facets/VaultV2Fixed.sol
-@@ -40,15 +40,14 @@
--    function withdraw(uint256 amount) external {
--        VaultStorage.Layout storage vs = VaultStorage.layout();
--
--        // BUG: Missing balance check! And unchecked arithmetic allows underflow.
--        unchecked {
--            vs.balances[msg.sender] -= amount;
--        }
--        vs.totalDeposits -= amount;
-+    function withdraw(uint256 amount) external {
-+        if (amount == 0) revert SolGitErrors.InvalidVersion();
-+        VaultStorage.Layout storage vs = VaultStorage.layout();
-+        if (vs.balances[msg.sender] < amount) revert SolGitErrors.Unauthorized();
-+        vs.balances[msg.sender] -= amount;
-+        vs.totalDeposits -= amount;`;
-    // Write fixed facet to disk
-    const fixedPath = path.join(rootDir, "src", "facets", "VaultV2Fixed.sol");
-    fs.writeFileSync(fixedPath, fixedCode.replace("contract VaultV2", "contract VaultV2Fixed"), "utf-8");
-    console.log(chalk.green(`  ✔ Generated patched facet: src/facets/VaultV2Fixed.sol`));
-    // Verify fix with automated Foundry test run
+    // Initialize unified AI client (Groq + Gemini with fallback)
+    const aiClient = new UnifiedAIClient();
+    const fixResponse = await aiClient.generateSecurityFix({
+        vulnerableSource: sourceCode,
+        selector: incident.selector,
+        incidentReason: "Arithmetic underflow vulnerability in withdraw without balance check",
+        contractName: targetContractName,
+    });
+    const fixedContractName = `${targetContractName}Fixed`;
+    const fixedFileName = `${fixedContractName}.sol`;
+    const fixedPath = path.join(facetsDir, fixedFileName);
+    // Write patched facet to disk
+    fs.writeFileSync(fixedPath, fixResponse.fixedCode, "utf-8");
+    console.log(chalk.green(`  ✔ Generated patched facet: src/facets/${fixedFileName}`));
+    console.log(chalk.cyan(`    Provider: ${fixResponse.providerUsed} (${fixResponse.modelUsed})`));
+    console.log(chalk.gray(`    Summary: ${fixResponse.explanation}`));
+    // Verify fix with automated Foundry test run against VaultV2Fixed
     let testsPassed = false;
     try {
-        console.log(chalk.cyan("  Running automated verification via Foundry (`forge test`)..."));
-        execSync("export PATH=\"$HOME/.foundry/bin:$PATH\" && forge test --match-test test_vaultV1", {
+        console.log(chalk.cyan(`  Running automated verification via Foundry (\`forge test --match-contract ${fixedContractName}Test\`)...`));
+        const testOutput = execSync(`export PATH="$HOME/.foundry/bin:$PATH" && forge test --match-contract ${fixedContractName}Test`, {
             cwd: rootDir,
             stdio: "pipe",
+            encoding: "utf-8",
         });
-        testsPassed = true;
-        console.log(chalk.green.bold("  ✔ Automated tests PASSED! Fix verified clean."));
+        if (testOutput.includes("[PASS]") && !testOutput.includes("[FAIL")) {
+            testsPassed = true;
+            console.log(chalk.green.bold(`  ✔ Automated Foundry tests PASSED! ${fixedContractName} verified clean.`));
+        }
+        else {
+            console.error(chalk.red.bold(`  ❌ Foundry test suite reported failure in ${fixedContractName}:`));
+            console.error(chalk.red(testOutput));
+            testsPassed = false;
+        }
     }
-    catch {
-        console.log(chalk.yellow("  ⚠️ Automated test execution completed with warnings (fallback to manual audit)."));
-        testsPassed = true; // Still generate PR
+    catch (err) {
+        console.error(chalk.red.bold(`  ❌ Automated test execution failed for ${fixedContractName}:`));
+        console.error(chalk.red(err.stdout || err.message));
+        testsPassed = false;
     }
     return {
         selector: incident.selector,
         badVersion: incident.badVersion,
-        fixedCode,
-        diff,
-        explanation,
+        fixedCode: fixResponse.fixedCode,
+        diff: fixResponse.diff,
+        explanation: fixResponse.explanation,
         testsPassed,
     };
 }
