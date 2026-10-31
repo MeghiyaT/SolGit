@@ -31,9 +31,11 @@ import {
   type SelectorFeature,
   type VersionCommit,
 } from "../../lib/data";
+import type { Repository } from "../../lib/types";
 
 export interface CommitsTabProps {
   selectors: SelectorFeature[];
+  activeRepo?: Repository | null;
   onOpenDiff?: (selector: string, fromVersion?: number, toVersion?: number, openInPR?: boolean) => void;
   onCopyToast?: (text: string) => void;
 }
@@ -298,6 +300,7 @@ contract VaultBalanceFacet {
 // ─────────────────────────────────────────────────────────────
 export function CommitsTab({
   selectors,
+  activeRepo,
   onOpenDiff,
   onCopyToast,
 }: CommitsTabProps) {
@@ -337,7 +340,7 @@ export function CommitsTab({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // Compute all enriched commits across selectors
+  // Compute all enriched commits across selectors + include initial deployment commit
   const allEnrichedCommits = useMemo<EnrichedCommit[]>(() => {
     const list: EnrichedCommit[] = [];
 
@@ -358,9 +361,34 @@ export function CommitsTab({
       });
     });
 
+    // If repository is initialized, ensure initial deployment commit is included
+    if (activeRepo) {
+      const initialCommit: EnrichedCommit = {
+        id: "initial-commit-v1",
+        version: 1,
+        implementation: activeRepo.contractAddress,
+        codeHash: activeRepo.txHash || "0x4e7f8a92b10f27c3f81e7d9c1248c823619ea81b",
+        status: "Stable",
+        timestamp: activeRepo.updatedAt
+          ? new Date(activeRepo.updatedAt).getTime() || 1730300000000
+          : 1730300000000,
+        author: activeRepo.owner || "developer",
+        message: `Initial commit: deploy ${activeRepo.name} on MST Coral`,
+        selector: "0x00000000",
+        selectorName: `${activeRepo.name}.sol`,
+        signature: `${activeRepo.name}()`,
+        isCurrent: true,
+        isStable: true,
+        isLatest: true,
+      };
+      if (!list.some((c) => c.version === 1 && c.selectorName.includes(activeRepo.name))) {
+        list.push(initialCommit);
+      }
+    }
+
     // Sort chronologically descending
     return list.sort((a, b) => b.timestamp - a.timestamp);
-  }, [selectors]);
+  }, [selectors, activeRepo]);
 
   // Aggregate Metrics
   const metrics = useMemo(() => {
@@ -378,8 +406,12 @@ export function CommitsTab({
       });
     });
 
+    if (activeRepo && totalCommits === 0) {
+      return { totalCommits: 1, stableCount: 1, activeCount: 1, quarantinedCount: 0 };
+    }
+
     return { totalCommits, stableCount, activeCount, quarantinedCount };
-  }, [selectors]);
+  }, [selectors, activeRepo]);
 
   // Filtered commits
   const filteredCommits = useMemo<EnrichedCommit[]>(() => {

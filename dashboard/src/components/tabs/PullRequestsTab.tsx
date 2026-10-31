@@ -18,7 +18,6 @@ import {
   Terminal,
   FileCode,
   MessageSquare,
-  Search,
   Bot,
   ThumbsUp,
   ArrowLeft,
@@ -29,6 +28,7 @@ import {
   CONTRACTS,
   type PullRequestCheck,
 } from "../../lib/data";
+import { AIFixerConsole } from "../AIFixerConsole";
 
 // ─────────────────────────────────────────────────────────────
 // Component Props Interface
@@ -43,7 +43,7 @@ export interface PullRequestsTabProps {
 // ─────────────────────────────────────────────────────────────
 // Sub-types & Structures
 // ─────────────────────────────────────────────────────────────
-export type PrSubTab = "conversation" | "commits" | "checks" | "files";
+export type PrSubTab = "conversation" | "commits" | "checks" | "files" | "telemetry";
 export type MergeStrategy = "merge-commit" | "squash" | "rebase";
 
 export interface DiffLine {
@@ -249,63 +249,6 @@ const CI_CHECKS: CiCheckDetail[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────
-// Historical PRs for the List View
-// ─────────────────────────────────────────────────────────────
-const HISTORICAL_PRS: HistoricalPR[] = [
-  {
-    id: 41,
-    title: "feat(loupe): add Diamond Loupe introspection facets",
-    status: "merged",
-    author: "0xF880...416B",
-    branchFrom: "feat-diamond-loupe",
-    branchTo: "main",
-    timeAgo: "2 days ago",
-    commentsCount: 2,
-    checksSummary: "3/3 passed",
-    labels: [
-      { text: "diamond-proxy", color: "bg-purple-900/40 text-purple-300 border-purple-700/40" },
-      { text: "introspection", color: "bg-blue-900/40 text-blue-300 border-blue-700/40" },
-    ],
-    additions: 148,
-    deletions: 12,
-  },
-  {
-    id: 40,
-    title: "fix(storage): optimize gas slot packing for vault balances",
-    status: "merged",
-    author: "0x5678...contributor",
-    branchFrom: "perf-storage-layout",
-    branchTo: "main",
-    timeAgo: "5 days ago",
-    commentsCount: 5,
-    checksSummary: "4/4 passed",
-    labels: [
-      { text: "gas-optimization", color: "bg-emerald-900/40 text-emerald-300 border-emerald-700/40" },
-      { text: "storage", color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
-    ],
-    additions: 45,
-    deletions: 38,
-  },
-  {
-    id: 39,
-    title: "chore(core): initial EIP-2535 Diamond Proxy architecture setup",
-    status: "merged",
-    author: "0xF880...416B",
-    branchFrom: "eip2535-init",
-    branchTo: "main",
-    timeAgo: "12 days ago",
-    commentsCount: 8,
-    checksSummary: "5/5 passed",
-    labels: [
-      { text: "architecture", color: "bg-cyan-900/40 text-cyan-300 border-cyan-700/40" },
-      { text: "release", color: "bg-amber-900/40 text-amber-300 border-amber-700/40" },
-    ],
-    additions: 680,
-    deletions: 0,
-  },
-];
-
-// ─────────────────────────────────────────────────────────────
 // Main PullRequestsTab Component
 // ─────────────────────────────────────────────────────────────
 export function PullRequestsTab({
@@ -314,8 +257,11 @@ export function PullRequestsTab({
   onMergeFix,
   onActionToast,
 }: PullRequestsTabProps) {
-  // Navigation & View States
-  const [viewMode, setViewMode] = useState<"detail" | "list">("detail");
+  // Navigation & View States: Default to detail ONLY if an active PR is present
+  const [viewModeOverride, setViewModeOverride] = useState<"detail" | "list" | null>(null);
+  const viewMode = viewModeOverride ?? (isHacked || isMerged ? "detail" : "list");
+  const setViewMode = (mode: "detail" | "list") => setViewModeOverride(mode);
+
   const [activeSubTab, setActiveSubTab] = useState<PrSubTab>("conversation");
   const [diffViewMode, setDiffViewMode] = useState<"unified" | "split">("unified");
 
@@ -345,10 +291,6 @@ export function PullRequestsTab({
 
   // Diff File Collapse State
   const [fileDiffCollapsed, setFileDiffCollapsed] = useState(false);
-
-  // Search & Filter State for PR List
-  const [listSearch, setListSearch] = useState("is:pr is:open");
-  const [listStatusFilter, setListStatusFilter] = useState<"all" | "open" | "merged">("all");
 
   const mergeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -491,10 +433,12 @@ export function PullRequestsTab({
     return rows;
   }, []);
 
-  // Filtered PR list
+  // Filtered PR list: only display PR #42 when an AI fix has been staged or merged
   const filteredPrList = useMemo(() => {
-    let prs = [
-      {
+    const prs: HistoricalPR[] = [];
+
+    if (isHacked || isMerged) {
+      prs.push({
         id: 42,
         title: "[SolGit AI Fix] Secure withdraw underflow patch",
         status: isMerged ? "merged" : "open",
@@ -502,41 +446,23 @@ export function PullRequestsTab({
         isBot: true,
         branchFrom: "solgit-fix-0x2e1a7d-v2",
         branchTo: "main",
-        timeAgo: "10 minutes ago",
+        timeAgo: isMerged ? "Just now" : "10 minutes ago",
         commentsCount: 3,
         checksSummary: "4/4 passed",
         labels: [
           { text: "solgit-ai-fix", color: "bg-emerald-950/60 text-emerald-400 border-emerald-700/50" },
           { text: "security-patch", color: "bg-rose-950/60 text-rose-300 border-rose-700/50" },
-          { text: "diamond-cut", color: "bg-purple-950/60 text-purple-300 border-purple-700/50" },
         ],
         additions: 12,
         deletions: 8,
-      },
-      ...HISTORICAL_PRS,
-    ];
-
-    if (listStatusFilter === "open") {
-      prs = prs.filter((p) => p.status === "open");
-    } else if (listStatusFilter === "merged") {
-      prs = prs.filter((p) => p.status === "merged");
-    }
-
-    if (listSearch.trim()) {
-      const q = listSearch.toLowerCase();
-      // If it contains "is:open", filter open
-      if (q.includes("is:open")) {
-        prs = prs.filter((p) => p.status === "open");
-      } else if (q.includes("is:merged") || q.includes("is:closed")) {
-        prs = prs.filter((p) => p.status === "merged");
-      }
+      });
     }
 
     return prs;
-  }, [isMerged, listStatusFilter, listSearch]);
+  }, [isMerged, isHacked]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-32">
       {/* ─────────────────────────────────────────────────────────
           Active Incident Banner (if isHacked && !isMerged)
           ───────────────────────────────────────────────────────── */}
@@ -613,15 +539,15 @@ export function PullRequestsTab({
             >
               View all pull requests ({filteredPrList.length})
             </button>
-          ) : (
+          ) : (isHacked || isMerged) ? (
             <button
               onClick={() => setViewMode("detail")}
               className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#238636] hover:bg-[#2ea043] text-white transition shadow-sm cursor-pointer"
             >
               <GitPullRequest className="w-3.5 h-3.5" />
-              Open PR #42 (AI Fix)
+              <span>Review AI Fix (PR #42)</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -630,132 +556,90 @@ export function PullRequestsTab({
           ───────────────────────────────────────────────────────── */}
       {viewMode === "list" && (
         <div className="space-y-4">
-          {/* Filter Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-zinc-900/60 border border-white/[0.08] p-3 rounded-xl backdrop-blur-md">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-              <input
-                type="text"
-                value={listSearch}
-                onChange={(e) => setListSearch(e.target.value)}
-                placeholder="Search all pull requests..."
-                className="w-full pl-9 pr-4 py-1.5 bg-black/40 border border-white/10 rounded-lg text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-            <div className="flex items-center gap-1.5 text-xs">
-              <button
-                onClick={() => setListStatusFilter("all")}
-                className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                  listStatusFilter === "all"
-                    ? "bg-white/10 text-white"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => setListStatusFilter("open")}
-                className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                  listStatusFilter === "open"
-                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {isMerged ? "0 Open" : "1 Open"}
-              </button>
-              <button
-                onClick={() => setListStatusFilter("merged")}
-                className={`px-3 py-1.5 rounded-lg font-medium transition cursor-pointer ${
-                  listStatusFilter === "merged"
-                    ? "bg-purple-500/20 text-purple-400 border border-purple-500/30"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {isMerged ? "4 Merged" : "3 Merged"}
-              </button>
-            </div>
-          </div>
-
           {/* PR Items Table */}
           <div className="rounded-xl border border-white/[0.08] bg-zinc-950/70 overflow-hidden backdrop-blur-md divide-y divide-white/[0.06]">
-            {filteredPrList.map((pr) => (
-              <div
-                key={pr.id}
-                onClick={() => {
-                  if (pr.id === 42) {
+            {filteredPrList.length === 0 ? (
+              <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
+                <GitPullRequest className="w-10 h-10 text-zinc-600" />
+                <h3 className="text-base font-bold text-white">There aren’t any open pull requests.</h3>
+                <p className="text-xs text-zinc-400 max-w-md leading-relaxed">
+                  Pull requests help you review and propose changes to smart contract facets. When an exploit is intercepted by SolGit Guardian, the AI Fixer will automatically stage a verified hotfix here.
+                </p>
+              </div>
+            ) : (
+              filteredPrList.map((pr) => (
+                <div
+                  key={pr.id}
+                  onClick={() => {
                     setViewMode("detail");
-                  } else {
-                    triggerToast(`Viewing historical archive for PR #${pr.id}`);
-                  }
-                }}
-                className={`p-4 flex items-start justify-between gap-4 hover:bg-white/[0.03] transition cursor-pointer group ${
-                  pr.id === 42 ? "border-l-2 border-emerald-500" : ""
-                }`}
-              >
-                <div className="flex items-start gap-3 min-w-0">
-                  <div className="mt-1">
-                    {pr.status === "open" ? (
-                      <span className="text-[#238636] flex">
-                        <GitPullRequest className="w-4 h-4" />
-                      </span>
-                    ) : (
-                      <span className="text-[#8957e5] flex">
-                        <GitMerge className="w-4 h-4" />
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-white group-hover:text-emerald-400 transition truncate">
-                        {pr.title}
-                      </span>
-                      {pr.labels.map((lbl, idx) => (
-                        <span
-                          key={idx}
-                          className={`text-[11px] px-2 py-0.5 rounded-full border font-mono ${lbl.color}`}
-                        >
-                          {lbl.text}
+                  }}
+                  className="p-4 flex items-start justify-between gap-4 hover:bg-white/[0.03] transition cursor-pointer group border-l-2 border-emerald-500"
+                >
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="mt-1">
+                      {pr.status === "open" ? (
+                        <span className="text-[#238636] flex">
+                          <GitPullRequest className="w-4 h-4" />
                         </span>
-                      ))}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1 flex-wrap font-mono">
-                      <span>#{pr.id}</span>
-                      <span>by</span>
-                      <span className="text-zinc-300 font-semibold flex items-center gap-1">
-                        {pr.isBot && <Sparkles className="w-3 h-3 text-emerald-400" />}
-                        {pr.author}
-                      </span>
-                      {pr.isBot && (
-                        <span className="text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 px-1 rounded font-bold">
-                          BOT
+                      ) : (
+                        <span className="text-[#8957e5] flex">
+                          <GitMerge className="w-4 h-4" />
                         </span>
                       )}
-                      <span>·</span>
-                      <span className="text-zinc-500">{pr.timeAgo}</span>
-                      <span>·</span>
-                      <span className="text-zinc-300 bg-white/[0.04] px-1.5 py-0.5 rounded">
-                        {pr.branchFrom} → {pr.branchTo}
-                      </span>
-                      <span>·</span>
-                      <span className="text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3 h-3" /> {pr.checksSummary}
-                      </span>
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-semibold text-white group-hover:text-emerald-400 transition truncate">
+                          {pr.title}
+                        </span>
+                        {pr.labels.map((lbl, idx) => (
+                          <span
+                            key={idx}
+                            className={`text-[11px] px-2 py-0.5 rounded-full border font-mono ${lbl.color}`}
+                          >
+                            {lbl.text}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1 flex-wrap font-mono">
+                        <span>#{pr.id}</span>
+                        <span>by</span>
+                        <span className="text-zinc-300 font-semibold flex items-center gap-1">
+                          {pr.isBot && <Sparkles className="w-3 h-3 text-emerald-400" />}
+                          {pr.author}
+                        </span>
+                        {pr.isBot && (
+                          <span className="text-[10px] bg-emerald-950/80 text-emerald-400 border border-emerald-800/50 px-1 rounded font-bold">
+                            BOT
+                          </span>
+                        )}
+                        <span>·</span>
+                        <span className="text-zinc-500">{pr.timeAgo}</span>
+                        <span>·</span>
+                        <span className="text-zinc-300 bg-white/[0.04] px-1.5 py-0.5 rounded">
+                          {pr.branchFrom} → {pr.branchTo}
+                        </span>
+                        <span>·</span>
+                        <span className="text-emerald-400 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> {pr.checksSummary}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 text-xs text-zinc-400">
+                    <div className="hidden sm:flex items-center gap-1 font-mono text-[11px]">
+                      <span className="text-emerald-400 font-semibold">+{pr.additions}</span>
+                      <span className="text-rose-400 font-semibold">-{pr.deletions}</span>
+                    </div>
+                    <div className="flex items-center gap-1 hover:text-white">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>{pr.commentsCount}</span>
                     </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-3 shrink-0 text-xs text-zinc-400">
-                  <div className="hidden sm:flex items-center gap-1 font-mono text-[11px]">
-                    <span className="text-emerald-400 font-semibold">+{pr.additions}</span>
-                    <span className="text-rose-400 font-semibold">-{pr.deletions}</span>
-                  </div>
-                  <div className="flex items-center gap-1 hover:text-white">
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    <span>{pr.commentsCount}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
@@ -913,6 +797,21 @@ export function PullRequestsTab({
               <span className="px-1.5 py-[1px] rounded-full text-[11px] bg-white/10 text-zinc-300 font-mono">
                 1 <span className="text-emerald-400">+12</span>{" "}
                 <span className="text-rose-400">-8</span>
+              </span>
+            </button>
+
+            <button
+              onClick={() => setActiveSubTab("telemetry")}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition whitespace-nowrap cursor-pointer ${
+                activeSubTab === "telemetry"
+                  ? "border-emerald-400 text-white font-semibold"
+                  : "border-transparent text-zinc-400 hover:text-zinc-200 hover:border-zinc-700"
+              }`}
+            >
+              <Terminal className="w-4 h-4 text-purple-400" />
+              <span>AI Telemetry Console</span>
+              <span className="px-1.5 py-[1px] rounded-full text-[10px] bg-purple-950/80 text-purple-300 border border-purple-800/40 uppercase font-mono font-bold">
+                Live
               </span>
             </button>
           </div>
@@ -1524,9 +1423,9 @@ export function PullRequestsTab({
                                   <ChevronDown className="w-4 h-4" />
                                 </button>
 
-                                {/* Dropdown Menu */}
+                                {/* Dropdown Menu (Opens upwards to prevent viewport cutoff) */}
                                 {mergeDropdownOpen && (
-                                  <div className="absolute left-0 mt-1 w-64 rounded-lg bg-[#161b22] border border-white/10 shadow-2xl py-1 z-30 text-xs">
+                                  <div className="absolute left-0 bottom-full mb-2 w-72 rounded-xl bg-[#161b22] border border-white/15 shadow-2xl py-1.5 z-50 text-xs">
                                     <button
                                       onClick={() => {
                                         setMergeStrategy("merge-commit");
@@ -1979,6 +1878,19 @@ export function PullRequestsTab({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────
+              SUBTAB 5: AI TELEMETRY CONSOLE TAB
+              ───────────────────────────────────────────────────────── */}
+          {activeSubTab === "telemetry" && (
+            <div className="pt-2">
+              <AIFixerConsole
+                isHacked={true}
+                isMerged={isMerged}
+                onMergeFix={onMergeFix}
+              />
             </div>
           )}
         </div>

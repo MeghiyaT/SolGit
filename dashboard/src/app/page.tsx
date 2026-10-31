@@ -8,7 +8,6 @@ import { CodeTab } from "../components/tabs/CodeTab";
 import { CommitsTab } from "../components/tabs/CommitsTab";
 import { PullRequestsTab } from "../components/tabs/PullRequestsTab";
 import { SecurityTab } from "../components/tabs/SecurityTab";
-import { LoupeTab } from "../components/tabs/LoupeTab";
 import { CommandPalette } from "../components/CommandPalette";
 import { Toast } from "../components/Toast";
 import { DashboardView } from "../components/dashboard/DashboardView";
@@ -26,14 +25,6 @@ import {
   type VersionCommit,
 } from "../lib/data";
 import type { TabType, ToastNotification, ViewType, Repository, PullRequestItem } from "../lib/types";
-import {
-  Shield,
-  Layers,
-  ExternalLink,
-  Copy,
-  Check,
-  Cpu,
-} from "lucide-react";
 
 interface ApiRepoItem {
   id: string;
@@ -121,14 +112,14 @@ function DashboardApp() {
   // Active Repository State Machine
   // ─────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TabType>("code");
-  const [selectedFile, setSelectedFile] = useState<string>("contracts/facets/VaultV2.sol");
+  const [selectedFile, setSelectedFile] = useState<string>("CoralVault.sol");
   const [selectors, setSelectors] = useState<SelectorFeature[]>(INITIAL_SELECTORS);
   const [events, setEvents] = useState<RollbackEvent[]>(INITIAL_EVENTS);
   const [isHacked, setIsHacked] = useState<boolean>(false);
   const [isMerged, setIsMerged] = useState<boolean>(false);
+  const [vaultTvl, setVaultTvl] = useState<number>(15.0);
   const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  const [copiedRouter, setCopiedRouter] = useState<boolean>(false);
 
   // Active repository object
   const activeRepo = useMemo(() => {
@@ -186,15 +177,6 @@ function DashboardApp() {
     [showToast]
   );
 
-  const handleCopyFooterRouter = () => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(CONTRACTS.router).catch(() => {});
-    }
-    setCopiedRouter(true);
-    handleCopyToast(CONTRACTS.router, "Diamond Router");
-    setTimeout(() => setCopiedRouter(false), 2000);
-  };
-
   // ─────────────────────────────────────────────────────────────
   // State Machine Action Handlers
   // ─────────────────────────────────────────────────────────────
@@ -243,6 +225,36 @@ function DashboardApp() {
     );
   }, [showToast]);
 
+  // Synchronize vault state live with standalone demo dApp (localhost:3001)
+  useEffect(() => {
+    let isMounted = true;
+    const syncVaultState = async () => {
+      try {
+        const res = await fetch("/api/vault/state");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            if (typeof data.tvl === "number") {
+              setVaultTvl(data.tvl);
+            }
+            if (data.isHacked && !isHacked) {
+              handleTriggerHack();
+            }
+          }
+        }
+      } catch {
+        // Fallback silently if offline
+      }
+    };
+
+    syncVaultState();
+    const interval = setInterval(syncVaultState, 2000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isHacked, handleTriggerHack]);
+
   // 2. PR Merged / AI Fix Deployed -> Upgrade to Version 3
   const handleMergeFix = useCallback(() => {
     setIsMerged(true);
@@ -277,9 +289,15 @@ function DashboardApp() {
       })
     );
 
+    fetch("/api/vault/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "merge" }),
+    }).catch(() => {});
+
     showToast(
       "Pull Request #42 Merged!",
-      "VaultV2Fixed.sol deployed behind Diamond Router. Selector 0x2e1a7d4d upgraded to Version 3 (Active & Protected).",
+      "Hotfix facet deployed live. Selector 0x2e1a7d4d promoted to Version 3 (Active & Protected).",
       "success",
       5000
     );
@@ -291,15 +309,23 @@ function DashboardApp() {
     setIsMerged(false);
     setSelectors(INITIAL_SELECTORS);
     setEvents(INITIAL_EVENTS);
-    setSelectedFile("contracts/facets/VaultV2.sol");
+    if (activeRepo) {
+      setSelectedFile(`${activeRepo.name}.sol`);
+    }
+
+    fetch("/api/vault/state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reset" }),
+    }).catch(() => {});
 
     showToast(
-      "Demo State Reset",
-      "Diamond proxy restored to initial testing environment (VaultV2 under evaluation).",
+      "State Reset",
+      "Repository restored to production stable baseline.",
       "info",
       3500
     );
-  }, [showToast]);
+  }, [showToast, activeRepo]);
 
   // 4. Create Repository
   const handleCreateRepo = useCallback((newRepo: Repository) => {
@@ -360,9 +386,6 @@ function DashboardApp() {
         } else if (e.code === "Digit4" || e.key === "4") {
           e.preventDefault();
           setActiveTab("security");
-        } else if (e.code === "Digit5" || e.key === "5") {
-          e.preventDefault();
-          setActiveTab("loupe");
         }
       }
     };
@@ -415,9 +438,6 @@ function DashboardApp() {
             setCurrentView("repository");
             setActiveTab("pulls");
           }}
-          onSimulateHack={handleTriggerHack}
-          onRollback={handleReset}
-          onCopyAddress={handleCopyToast}
         />
       ) : (
         <div className="flex-1 flex flex-col">
@@ -431,11 +451,11 @@ function DashboardApp() {
             isPrivate={activeRepo.isPrivate}
           />
 
-          {/* Subnavigation Tabs (Code, Commits, PRs, Security, Loupe) */}
+          {/* Subnavigation Tabs (Code, Commits, PRs, Security) */}
           <TabNav
             activeTab={activeTab}
             onTabChange={(tab) => setActiveTab(tab)}
-            prCount={pullRequests.length}
+            prCount={isHacked || isMerged ? 1 : 0}
             hasSecurityAlert={isHacked && !isMerged}
           />
 
@@ -450,12 +470,14 @@ function DashboardApp() {
                   isMerged={isMerged}
                   onCopyToast={handleCopyToast}
                   activeRepo={activeRepo}
+                  onNavigateCommits={() => setActiveTab("commits")}
                 />
               )}
 
               {activeTab === "commits" && (
                 <CommitsTab
                   selectors={selectors}
+                  activeRepo={activeRepo}
                   onOpenDiff={(selector, fromVersion, toVersion, openInPR) => {
                     if (openInPR) {
                       setActiveTab("pulls");
@@ -487,14 +509,14 @@ function DashboardApp() {
                   onTriggerHack={handleTriggerHack}
                   onReset={handleReset}
                   onActionToast={handleActionToast}
-                />
-              )}
-
-              {activeTab === "loupe" && (
-                <LoupeTab
-                  selectors={selectors}
-                  onCopy={handleCopyToast}
-                  onActionToast={handleActionToast}
+                  isMerged={isMerged}
+                  onMergeFix={handleMergeFix}
+                  activeRepo={activeRepo}
+                  vaultTvl={vaultTvl}
+                  onNavigatePR={() => {
+                    setCurrentView("repository");
+                    setActiveTab("pulls");
+                  }}
                 />
               )}
             </div>
@@ -562,115 +584,6 @@ function DashboardApp() {
         notification={toast}
         onClose={() => setToast(null)}
       />
-
-      {/* ──────────────────────────────────────────────────────────
-          6. GitHub Standard Dark Footer
-          ────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-[#30363d] bg-[#0d1117] px-4 sm:px-6 py-6 text-xs text-[#8b949e] mt-auto">
-        <div className="max-w-7xl mx-auto space-y-4">
-          {/* Top Row: Network Status & Diamond Architecture */}
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-[#30363d]">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-[#161b22] border border-[#30363d] text-[#c9d1d9]">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-                </span>
-                <span className="font-medium">MST Coral Testnet</span>
-                <span className="font-mono text-[11px] text-[#8b949e]">(Chain ID: 54635)</span>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#161b22] border border-[#30363d] text-[#c9d1d9]">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Guardian Active</span>
-              </div>
-
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#161b22] border border-[#30363d] text-[#c9d1d9]">
-                <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                <span>EIP-2535 Diamond Proxy</span>
-              </div>
-            </div>
-
-            {/* Diamond Router Address Pill */}
-            <div className="flex items-center gap-2 bg-[#161b22] border border-[#30363d] px-2.5 py-1 rounded-md">
-              <span className="text-[#8b949e] font-mono">Router:</span>
-              <code className="font-mono text-[#f0f6fc] text-[11px]">
-                {CONTRACTS.router.slice(0, 8)}...{CONTRACTS.router.slice(-6)}
-              </code>
-              <button
-                type="button"
-                onClick={handleCopyFooterRouter}
-                className="p-1 hover:text-emerald-400 hover:bg-[#21262d] rounded transition cursor-pointer"
-                title="Copy Diamond Router Address"
-                aria-label="Copy Diamond Router Address"
-              >
-                {copiedRouter ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Copy className="w-3.5 h-3.5 text-[#8b949e]" />
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* Bottom Row: Branding, Navigation Links & Keyboard Hint */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 text-white font-semibold tracking-tight">
-                <Cpu className="w-4 h-4 text-emerald-400" />
-                <span>SolGit</span>
-              </div>
-              <span className="text-zinc-600">•</span>
-              <span className="text-[#8b949e]">
-                Git-Style Smart Contract Version Control & AI Self-Healing
-              </span>
-            </div>
-
-            {/* Quick Keyboard Hint */}
-            <div className="hidden lg:flex items-center gap-2 text-[#8b949e]">
-              <span>Press</span>
-              <kbd>/</kbd>
-              <span>or</span>
-              <kbd>⌘K</kbd>
-              <span>for search</span>
-              <span className="text-zinc-700">•</span>
-              <kbd>1-5</kbd>
-              <span>for repository tabs</span>
-            </div>
-
-            {/* External Links */}
-            <div className="flex items-center gap-4 text-[#8b949e]">
-              <a
-                href="https://coral.mstscan.com"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-emerald-400 transition flex items-center gap-1"
-              >
-                <span>MST Coral Explorer</span>
-                <ExternalLink className="w-3 h-3 text-[#8b949e]" />
-              </a>
-              <a
-                href="https://faucet.mstblockchain.com"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-emerald-400 transition flex items-center gap-1"
-              >
-                <span>Faucet</span>
-                <ExternalLink className="w-3 h-3 text-[#8b949e]" />
-              </a>
-              <a
-                href="https://coralrpc.mstblockchain.com"
-                target="_blank"
-                rel="noreferrer"
-                className="hover:text-emerald-400 transition flex items-center gap-1"
-              >
-                <span>RPC</span>
-                <ExternalLink className="w-3 h-3 text-[#8b949e]" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -13,7 +13,6 @@ import {
   Terminal,
   ShieldCheck,
   ShieldAlert,
-  Layers,
   Cpu,
   Maximize2,
   Minimize2,
@@ -24,9 +23,7 @@ import {
   Info,
   BookOpen,
   AlertTriangle,
-  Package,
   Search,
-  CheckCircle2,
   X,
 } from "lucide-react";
 import {
@@ -44,6 +41,7 @@ export interface CodeTabProps {
   isMerged?: boolean;
   onCopyToast?: (text: string) => void;
   activeRepo?: Repository | null;
+  onNavigateCommits?: () => void;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -164,6 +162,7 @@ export function CodeTab({
   isMerged = false,
   onCopyToast,
   activeRepo,
+  onNavigateCommits,
 }: CodeTabProps) {
   // Branch state
   const [selectedBranch, setSelectedBranch] = useState("main");
@@ -271,24 +270,24 @@ export function CodeTab({
     }, 2000);
   };
 
-  // Branches list
-  const branches = [
-    {
-      name: "main",
-      isDefault: true,
-      description: "Production stable Diamond contracts with active VersionRegistry",
-    },
-    {
-      name: "solgit-fix-0x2e1a7d-v2",
-      isDefault: false,
-      description: "AI autonomous repair branch restoring CEI checks (PR #42)",
-    },
-    {
-      name: "v2-optimize-gas",
-      isDefault: false,
-      description: "Experimental gas-optimization facet with unchecked math",
-    },
-  ];
+  // Branches list: only show main by default; only show AI repair branch when incident is triggered
+  const branches = useMemo(() => {
+    const list = [
+      {
+        name: "main",
+        isDefault: true,
+        description: "Active production branch on MST Coral Testnet",
+      },
+    ];
+    if (isHacked || isMerged) {
+      list.push({
+        name: "solgit-fix-0x2e1a7d-v2",
+        isDefault: false,
+        description: "AI autonomous repair branch (PR #42)",
+      });
+    }
+    return list;
+  }, [isHacked, isMerged]);
 
   const filteredBranches = branches.filter((b) =>
     b.name.toLowerCase().includes(branchFilter.toLowerCase())
@@ -338,7 +337,7 @@ export function CodeTab({
     );
   }, [dynamicFiles, fileSearch]);
 
-  // Commit summary data based on state
+  // Commit summary data based on state & active repository
   const commitSummary = useMemo(() => {
     if (isMerged) {
       return {
@@ -347,9 +346,9 @@ export function CodeTab({
         avatarBg: "bg-purple-600/30 text-purple-300 border-purple-500/50",
         message: "fix(withdraw): AI-healed CEI balance verification patch (PR #42)",
         sha: "7b9e4a2",
-        time: "10 minutes ago",
+        time: "Just now",
         statusBadge: "PR #42 Merged",
-        commitsCount: 5,
+        commitsCount: 2,
       };
     }
     if (isHacked) {
@@ -361,20 +360,32 @@ export function CodeTab({
         sha: "3f5c9e2",
         time: "Just now",
         statusBadge: "Guardian Emergency Active",
-        commitsCount: 4,
+        commitsCount: 1,
+      };
+    }
+    if (activeRepo) {
+      return {
+        author: activeRepo.owner || "developer",
+        role: "Deployer",
+        avatarBg: "bg-emerald-600/30 text-emerald-300 border-emerald-500/50",
+        message: `Initial commit: deploy ${activeRepo.name} on MST Coral`,
+        sha: activeRepo.txHash ? activeRepo.txHash.slice(2, 9) : "4e7f8a9",
+        time: activeRepo.updatedAt || "Just now",
+        statusBadge: "Initial Commit",
+        commitsCount: 1,
       };
     }
     return {
-      author: "0xF880...416B",
-      role: "SolGit Core Dev",
+      author: "developer",
+      role: "Deployer",
       avatarBg: "bg-emerald-600/30 text-emerald-300 border-emerald-500/50",
-      message: "feat: deploy EIP-2535 Diamond Proxy with dynamic VersionRegistry",
+      message: "Initial commit: contract deployed on MST Coral",
       sha: "4e7f8a9",
-      time: "1 day ago",
+      time: "Just now",
       statusBadge: "Genesis Stable",
-      commitsCount: 4,
+      commitsCount: 1,
     };
-  }, [isMerged, isHacked]);
+  }, [isMerged, isHacked, activeRepo]);
 
   return (
     <div className="w-full space-y-6">
@@ -458,13 +469,18 @@ export function CodeTab({
             </span>
           </div>
 
-          {/* Commit Count Pill */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#21262d]/60 border border-white/10 text-zinc-400">
+          {/* Commit Count Pill (Clickable) */}
+          <button
+            type="button"
+            onClick={onNavigateCommits}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#21262d]/60 hover:bg-[#30363d] border border-white/10 text-zinc-300 hover:text-white transition cursor-pointer"
+            title="View Commit History"
+          >
             <History className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="font-medium text-zinc-300">
-              {commitSummary.commitsCount} commits
+            <span className="font-medium">
+              {commitSummary.commitsCount} {commitSummary.commitsCount === 1 ? "commit" : "commits"}
             </span>
-          </div>
+          </button>
         </div>
 
         {/* Right Side: macOS Green Code Popover Button */}
@@ -968,41 +984,38 @@ export function CodeTab({
               <span>README.md</span>
             </div>
 
-            <div className="space-y-4 text-xs text-zinc-300 leading-relaxed">
-              <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>SolGit: Git-Style Smart Contract Platform</span>
+            <div className="space-y-4 text-xs text-zinc-300 leading-relaxed font-sans">
+              <h1 className="text-xl font-bold text-white flex items-center gap-2">
+                <span>{activeRepo?.name || "Smart Contract Repository"}</span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  MST Testnet
+                  MST Coral Testnet
                 </span>
               </h1>
-              <p>
-                SolGit implements an on-chain version-controlled modular protocol using the{" "}
-                <strong className="text-cyan-300">EIP-2535 Diamond Standard</strong>. With dynamic
-                selector version registration, runtime invariant monitoring, and automated AI
-                self-healing rollback, SolGit stops exploits before funds are lost.
+              <p className="text-zinc-300">
+                {activeRepo?.description || "Smart contract repository deployed on MST Coral Testnet."}
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                <div className="p-3 rounded-lg bg-[#161b22] border border-white/10">
-                  <span className="text-zinc-500 text-[10px] block font-mono">CORE DEFENSE</span>
-                  <span className="font-semibold text-white text-xs">Guardian Rollback</span>
-                  <p className="text-[10px] text-zinc-400 mt-1">
-                    Instant selector rollback to verified stable facets upon invariant violation.
-                  </p>
+              <div className="p-4 rounded-xl bg-[#161b22] border border-white/10 space-y-2 text-xs font-mono">
+                <div className="text-zinc-400 font-bold uppercase tracking-wider text-[10px]">Contract Coordinates</div>
+                <div className="text-zinc-300 flex items-center justify-between gap-2">
+                  <span className="text-zinc-500">Address:</span>
+                  <span className="text-emerald-400 select-all truncate">{activeRepo?.contractAddress || CONTRACTS.diamond}</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#161b22] border border-white/10">
-                  <span className="text-zinc-500 text-[10px] block font-mono">ORCHESTRATION</span>
-                  <span className="font-semibold text-white text-xs">Autonomous PR Healing</span>
-                  <p className="text-[10px] text-zinc-400 mt-1">
-                    AI Watcher generates pull requests with verified CEI logic and test proofs.
-                  </p>
+                <div className="text-zinc-300 flex items-center justify-between">
+                  <span className="text-zinc-500">Network:</span>
+                  <span className="text-zinc-200">MST Coral (Chain ID 54635)</span>
                 </div>
-                <div className="p-3 rounded-lg bg-[#161b22] border border-white/10">
-                  <span className="text-zinc-500 text-[10px] block font-mono">REGISTRY</span>
-                  <span className="font-semibold text-white text-xs">Version History</span>
-                  <p className="text-[10px] text-zinc-400 mt-1">
-                    Every facet deployment is hashed, tagged, and tracked on-chain.
-                  </p>
+                <div className="text-zinc-300 flex items-center justify-between">
+                  <span className="text-zinc-500">Explorer:</span>
+                  <a
+                    href={`https://coralscan.mstblockchain.com/address/${activeRepo?.contractAddress || CONTRACTS.diamond}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-cyan-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>View on MSTScan</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
                 </div>
               </div>
             </div>
@@ -1011,35 +1024,15 @@ export function CodeTab({
 
         {/* Sidebar: Repository Metadata (Span 4) */}
         <div className="lg:col-span-4 space-y-4">
-          {/* About Card */}
+          {/* Clean About Card */}
           <div className="macos-card bg-[#161b22] border border-white/10 rounded-xl p-4 space-y-3">
             <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
               <span>About</span>
               <Info className="w-3.5 h-3.5 text-zinc-500" />
             </h3>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              SolGit Vault Diamond: Modular EIP-2535 smart contract architecture on MST Blockchain
-              with autonomous AI self-healing and Guardian emergency rollback.
+              {activeRepo?.description || "Smart contract repository deployed on MST Coral Testnet."}
             </p>
-
-            {/* Topics Tags */}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {[
-                "solidity",
-                "diamond-eip2535",
-                "mst-blockchain",
-                "self-healing",
-                "foundry",
-                "security-guardian",
-              ].map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
 
             {/* Protocol Meta Table */}
             <div className="pt-2 border-t border-white/10 space-y-2 text-xs">
@@ -1056,148 +1049,29 @@ export function CodeTab({
                 <span className="font-mono text-zinc-200">tMSTC</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-zinc-500">Block Time</span>
-                <span className="font-mono text-zinc-200">~3.0s</span>
+                <span className="text-zinc-500">Owner</span>
+                <span className="font-mono text-zinc-200">{activeRepo?.owner || "developer"}</span>
               </div>
             </div>
 
-            {/* Diamond Proxy Box */}
+            {/* Contract Address Box */}
             <div className="pt-2 border-t border-white/10">
-              <label className="text-[11px] text-zinc-400 block mb-1">Diamond Router Address</label>
+              <label className="text-[11px] text-zinc-400 block mb-1">Contract Address</label>
               <div className="flex items-center gap-1.5 bg-[#0d1117] border border-white/10 rounded-lg p-2 font-mono text-[11px] text-zinc-300">
-                <span className="truncate flex-1 text-emerald-300">{CONTRACTS.diamond}</span>
+                <span className="truncate flex-1 text-emerald-300">
+                  {activeRepo?.contractAddress || CONTRACTS.diamond}
+                </span>
                 <button
                   type="button"
-                  onClick={() => handleCopy(CONTRACTS.diamond, "Diamond Address")}
+                  onClick={() => handleCopy(activeRepo?.contractAddress || CONTRACTS.diamond, "Contract Address")}
                   className="p-1 rounded hover:bg-white/10 text-zinc-400 hover:text-white transition cursor-pointer"
                 >
-                  {copiedKey === "Diamond Address" ? (
+                  {copiedKey === "Contract Address" ? (
                     <Check className="w-3.5 h-3.5 text-emerald-400" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
                 </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Verified Facets Card */}
-          <div className="macos-card bg-[#161b22] border border-white/10 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-              <span>Verified Diamond Facets</span>
-              <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              <div className="p-2 rounded-lg bg-[#0d1117] border border-white/10 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-white">DiamondCutFacet</div>
-                  <div className="text-[10px] text-zinc-500 font-mono">0xCEe1...19EB</div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                  Core
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-[#0d1117] border border-white/10 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-white">DiamondLoupeFacet</div>
-                  <div className="text-[10px] text-zinc-500 font-mono">0xCEe1...19EB</div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                  Loupe
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-[#0d1117] border border-white/10 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-white">SolGitGuardianFacet</div>
-                  <div className="text-[10px] text-zinc-500 font-mono">0x6A7C...5e27</div>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono">
-                  Guardian
-                </span>
-              </div>
-
-              <div className="p-2 rounded-lg bg-[#0d1117] border border-white/10 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-white">VaultFacet (Active)</div>
-                  <div className="text-[10px] text-zinc-500 font-mono">
-                    {isMerged
-                      ? "0xb1C8...599 (v3 AI Fix)"
-                      : isHacked
-                      ? "0xF717...53f8 (v1 Safe)"
-                      : "0x9169...BCB7 (v2 Active)"}
-                  </div>
-                </div>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
-                    isMerged
-                      ? "bg-purple-500/20 text-purple-300"
-                      : isHacked
-                      ? "bg-amber-500/20 text-amber-300"
-                      : "bg-emerald-500/20 text-emerald-300"
-                  }`}
-                >
-                  {isMerged ? "v3" : isHacked ? "v1 (Rollback)" : "v2"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Guardian Defense Invariants */}
-          <div className="macos-card bg-[#161b22] border border-white/10 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-              <span>Guardian Invariants</span>
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            </h3>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-zinc-400">OUTFLOW_CAP</span>
-                <span className="font-mono text-emerald-400 font-semibold">100 tMSTC / tx</span>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-zinc-400">CEI Pattern</span>
-                <span className="font-mono text-emerald-400 font-semibold">Enforced</span>
-              </div>
-              <div className="flex items-center justify-between py-1 border-b border-white/5">
-                <span className="text-zinc-400">Auto Rollback Hook</span>
-                <span className="font-mono text-emerald-400 font-semibold">Enabled</span>
-              </div>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-zinc-400">Status</span>
-                <span
-                  className={`font-semibold flex items-center gap-1 ${
-                    isHacked ? "text-amber-400" : "text-emerald-400"
-                  }`}
-                >
-                  <CheckCircle2 className="w-3 h-3" />
-                  {isHacked ? "Rollback Engaged" : "All Invariants Passing"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Releases Card */}
-          <div className="macos-card bg-[#161b22] border border-white/10 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center justify-between">
-              <span>Releases</span>
-              <Package className="w-3.5 h-3.5 text-zinc-500" />
-            </h3>
-
-            <div className="p-3 rounded-lg bg-[#0d1117] border border-white/10 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-white">v1.0.0-stable</span>
-                <span className="text-[10px] px-1.5 py-[1px] rounded bg-emerald-500/20 text-emerald-400 font-mono">
-                  Latest
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400">
-                MST Testnet Genesis deployment with dynamic DiamondCut and VersionRegistry.
-              </p>
-              <div className="text-[10px] text-zinc-500 pt-1">
-                Released 1 day ago • 4 verified bytecode artifacts
               </div>
             </div>
           </div>
