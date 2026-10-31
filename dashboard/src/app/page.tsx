@@ -14,6 +14,7 @@ import { DashboardView } from "../components/dashboard/DashboardView";
 import { NewRepoModal } from "../components/dashboard/NewRepoModal";
 import { NicknameModal } from "../components/wallet/NicknameModal";
 import { Web3WalletProvider, useWeb3Wallet } from "../hooks/useWeb3Wallet";
+import { useOnChainVault } from "../hooks/useOnChainVault";
 import {
   INITIAL_SELECTORS,
   INITIAL_EVENTS,
@@ -117,7 +118,6 @@ function DashboardApp() {
   const [events, setEvents] = useState<RollbackEvent[]>(INITIAL_EVENTS);
   const [isHacked, setIsHacked] = useState<boolean>(false);
   const [isMerged, setIsMerged] = useState<boolean>(false);
-  const [vaultTvl, setVaultTvl] = useState<number>(15.0);
   const [isPaletteOpen, setIsPaletteOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
 
@@ -125,6 +125,9 @@ function DashboardApp() {
   const activeRepo = useMemo(() => {
     return repos.find((r) => r.id === selectedRepoId) || repos[0] || null;
   }, [repos, selectedRepoId]);
+
+  // Live on-chain telemetry from MST Coral Testnet
+  const onChainVault = useOnChainVault(activeRepo?.contractAddress);
 
   // Dynamic Pull Requests list reflecting merged state
   const pullRequests: PullRequestItem[] = useMemo(() => {
@@ -225,36 +228,6 @@ function DashboardApp() {
     );
   }, [showToast]);
 
-  // Synchronize vault state live with standalone demo dApp (localhost:3001)
-  useEffect(() => {
-    let isMounted = true;
-    const syncVaultState = async () => {
-      try {
-        const res = await fetch("/api/vault/state");
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) {
-            if (typeof data.tvl === "number") {
-              setVaultTvl(data.tvl);
-            }
-            if (data.isHacked && !isHacked) {
-              handleTriggerHack();
-            }
-          }
-        }
-      } catch {
-        // Fallback silently if offline
-      }
-    };
-
-    syncVaultState();
-    const interval = setInterval(syncVaultState, 2000);
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [isHacked, handleTriggerHack]);
-
   // 2. PR Merged / AI Fix Deployed -> Upgrade to Version 3
   const handleMergeFix = useCallback(() => {
     setIsMerged(true);
@@ -289,12 +262,6 @@ function DashboardApp() {
       })
     );
 
-    fetch("/api/vault/state", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "merge" }),
-    }).catch(() => {});
-
     showToast(
       "Pull Request #42 Merged!",
       "Hotfix facet deployed live. Selector 0x2e1a7d4d promoted to Version 3 (Active & Protected).",
@@ -312,12 +279,6 @@ function DashboardApp() {
     if (activeRepo) {
       setSelectedFile(`${activeRepo.name}.sol`);
     }
-
-    fetch("/api/vault/state", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "reset" }),
-    }).catch(() => {});
 
     showToast(
       "State Reset",
@@ -512,7 +473,8 @@ function DashboardApp() {
                   isMerged={isMerged}
                   onMergeFix={handleMergeFix}
                   activeRepo={activeRepo}
-                  vaultTvl={vaultTvl}
+                  vaultTvl={onChainVault.balanceFormatted}
+                  blockNumber={onChainVault.blockNumber}
                   onNavigatePR={() => {
                     setCurrentView("repository");
                     setActiveTab("pulls");

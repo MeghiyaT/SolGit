@@ -23,7 +23,8 @@ export interface SecurityTabProps {
   onMergeFix?: () => void;
   onNavigatePR?: () => void;
   activeRepo?: Repository | null;
-  vaultTvl?: number;
+  vaultTvl?: number | string;
+  blockNumber?: bigint | null;
 }
 
 export function SecurityTab({
@@ -34,9 +35,16 @@ export function SecurityTab({
   onMergeFix,
   onNavigatePR,
   activeRepo,
-  vaultTvl = 15.0,
+  vaultTvl = "0.0000",
+  blockNumber,
 }: SecurityTabProps) {
   const contractName = activeRepo?.name || "CoralVault";
+  const formattedTvl =
+    typeof vaultTvl === "number"
+      ? vaultTvl.toFixed(4)
+      : typeof vaultTvl === "string"
+      ? vaultTvl
+      : "0.0000";
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
       {/* ───────────────────────────────────────────────────── */}
@@ -67,7 +75,21 @@ export function SecurityTab({
                 </span>
                 <span>{isHacked ? "Incident Intercepted & Auto-Healed" : "Protocol Shield Active"}</span>
               </span>
-              <span className="text-xs text-zinc-500 font-mono">MST Coral Testnet (54635)</span>
+              <span className="text-xs text-zinc-500 font-mono">
+                MST Coral Testnet (54635){blockNumber ? ` • Block #${blockNumber}` : ""}
+              </span>
+              {activeRepo?.contractAddress && (
+                <a
+                  href={`https://coral.mstscan.com/address/${activeRepo.contractAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-emerald-400 font-mono transition"
+                  title="View Contract on MST Coral Explorer"
+                >
+                  <span>{activeRepo.contractAddress.slice(0, 6)}...{activeRepo.contractAddress.slice(-4)}</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
             </div>
 
             <h1 className="text-2xl font-black text-white tracking-tight">
@@ -106,7 +128,7 @@ export function SecurityTab({
               Vault Total Capital
             </span>
             <div className="text-xl font-black font-mono text-emerald-400 mt-1">
-              {vaultTvl.toFixed(4)} <span className="text-xs text-emerald-500 font-normal">tMSTC</span>
+              {formattedTvl} <span className="text-xs text-emerald-500 font-normal">tMSTC</span>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-emerald-400/90 mt-1">
               <CheckCircle2 className="w-3 h-3 text-emerald-400" />
