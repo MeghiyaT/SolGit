@@ -2,6 +2,7 @@
 cache/
 out/
 broadcast/
+artifacts/
 
 # Node & Package Managers
 node_modules/
