@@ -25,6 +25,23 @@ interface ISolGitGuardian {
     /// @param _facet The facet implementation address
     function isRegisteredStableFacet(address _facet) external view returns (bool);
 
+    /// @notice Query if a facet address supports/implements a given selector
+    /// @param _facet The facet implementation address
+    /// @param _selector The function selector
+    function facetSupportsSelector(address _facet, bytes4 _selector) external view returns (bool);
+
+    /// @notice Register a stable facet together with its explicit list of selectors
+    /// @param _facet The facet implementation address
+    /// @param _selectors The selectors implemented by the facet
+    function registerStableFacetWithSelectors(address _facet, bytes4[] calldata _selectors) external;
+
+    /// @notice Configure linked VersionRegistry for state synchronization. Owner-only.
+    /// @param _versionRegistry The address of the VersionRegistry
+    function setVersionRegistry(address _versionRegistry) external;
+
+    /// @notice Get the linked VersionRegistry address
+    function versionRegistry() external view returns (address);
+
     /// @notice Guardian-only emergency rollback for an attacked function selector
     /// @dev Target facet MUST be registered in `isRegisteredStableFacet`
     /// @param _selector The 4-byte function selector under exploit

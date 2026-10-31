@@ -13,6 +13,8 @@ import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "../src/interfaces/IDiamondLoupe.sol";
 import {ISolGitGuardian} from "../src/interfaces/ISolGitGuardian.sol";
 import {LibDiamond} from "../src/libraries/LibDiamond.sol";
+import {VersionRegistry} from "../src/core/VersionRegistry.sol";
+import {IVersionRegistry} from "../src/interfaces/IVersionRegistry.sol";
 
 contract SolGitGuardianTest is Test {
     SolGitDiamond internal diamond;
@@ -66,12 +68,16 @@ contract SolGitGuardianTest is Test {
             facetAddress: address(ownerFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: ownerSelectors
         });
 
-        bytes4[] memory guardianSelectors = new bytes4[](5);
+        bytes4[] memory guardianSelectors = new bytes4[](9);
         guardianSelectors[0] = ISolGitGuardian.guardian.selector;
         guardianSelectors[1] = ISolGitGuardian.setGuardian.selector;
         guardianSelectors[2] = ISolGitGuardian.registerStableFacet.selector;
         guardianSelectors[3] = ISolGitGuardian.isRegisteredStableFacet.selector;
         guardianSelectors[4] = ISolGitGuardian.emergencyRollback.selector;
+        guardianSelectors[5] = ISolGitGuardian.facetSupportsSelector.selector;
+        guardianSelectors[6] = ISolGitGuardian.registerStableFacetWithSelectors.selector;
+        guardianSelectors[7] = ISolGitGuardian.setVersionRegistry.selector;
+        guardianSelectors[8] = ISolGitGuardian.versionRegistry.selector;
         cuts[3] = IDiamondCut.FacetCut({
             facetAddress: address(guardianFacet),
             action: IDiamondCut.FacetCutAction.Add,
@@ -146,5 +152,59 @@ contract SolGitGuardianTest is Test {
         vm.prank(attacker);
         (bool exploitSuccess,) = address(diamond).call(abi.encodeWithSelector(VaultV1.withdraw.selector, 10 ether));
         assertFalse(exploitSuccess, "Exploit should fail after rollback to VaultV1");
+    }
+
+    function test_GuardianRollbackToFacetNotImplementingSelectorReverts() public {
+        // VaultV1 does NOT implement diamondCut selector
+        bytes4 cutSelector = IDiamondCut.diamondCut.selector;
+
+        vm.prank(guardian);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LibDiamond.TargetFacetDoesNotImplementSelector.selector, address(vaultV1), cutSelector
+            )
+        );
+        ISolGitGuardian(address(diamond)).emergencyRollback(cutSelector, address(vaultV1), "Invalid selector hijack");
+    }
+
+    function test_SynchronizationWithVersionRegistry() public {
+        vm.startPrank(owner);
+        VersionRegistry registry = new VersionRegistry(owner);
+        registry.setRouter(address(diamond));
+        ISolGitGuardian(address(diamond)).setVersionRegistry(address(registry));
+        assertEq(ISolGitGuardian(address(diamond)).versionRegistry(), address(registry));
+
+        // Push initial stable version in registry
+        registry.pushVersion(VaultV1.withdraw.selector, address(vaultV1));
+        registry.promote(VaultV1.withdraw.selector, 1);
+
+        // Perform diamondCut to upgrade to VaultV2
+        IDiamondCut.FacetCut[] memory cuts = new IDiamondCut.FacetCut[](1);
+        bytes4[] memory replaceSelectors = new bytes4[](1);
+        replaceSelectors[0] = VaultV2.withdraw.selector;
+        cuts[0] = IDiamondCut.FacetCut({
+            facetAddress: address(vaultV2),
+            action: IDiamondCut.FacetCutAction.Replace,
+            functionSelectors: replaceSelectors
+        });
+        IDiamondCut(address(diamond)).diamondCut(cuts, address(0), "");
+        vm.stopPrank();
+
+        // Verify diamondCut automatically synchronized to VersionRegistry
+        IVersionRegistry.VersionInfo memory activeInfo = registry.getActiveVersion(VaultV2.withdraw.selector);
+        assertEq(activeInfo.implementation, address(vaultV2));
+
+        // Trigger emergency rollback by guardian
+        vm.prank(guardian);
+        ISolGitGuardian(address(diamond))
+            .emergencyRollback(VaultV2.withdraw.selector, address(vaultV1), "Incident detected");
+
+        // Verify VersionRegistry was automatically synchronized
+        activeInfo = registry.getActiveVersion(VaultV1.withdraw.selector);
+        assertEq(activeInfo.implementation, address(vaultV1));
+
+        // Verify bad version is marked Quarantined in registry
+        IVersionRegistry.VersionInfo memory badInfo = registry.getVersion(VaultV2.withdraw.selector, 2);
+        assertEq(uint8(badInfo.status), uint8(IVersionRegistry.VersionStatus.Quarantined));
     }
 }
