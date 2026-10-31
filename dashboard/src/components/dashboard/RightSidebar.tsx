@@ -10,27 +10,30 @@ import {
   Sparkles,
 } from "lucide-react";
 import {
-  MST_CHAIN_ID,
-  MST_RPC_URL,
   MST_FAUCET_URL,
   MST_EXPLORER_URL,
+  getMSTChainConfig,
 } from "../../lib/mstChain";
 import { CONTRACTS } from "../../lib/data";
+import { useWeb3Wallet } from "../../hooks/useWeb3Wallet";
 
 export interface RightSidebarProps {
   onCopyAddress?: (text: string, label?: string) => void;
 }
 
 export function RightSidebar({ onCopyAddress }: RightSidebarProps) {
+  const { chainId } = useWeb3Wallet();
+  const activeConfig = getMSTChainConfig(chainId);
+
   const [copiedRpc, setCopiedRpc] = useState(false);
   const [copiedRouter, setCopiedRouter] = useState(false);
 
   const handleCopyRpc = () => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(MST_RPC_URL).catch(() => {});
+      navigator.clipboard.writeText(activeConfig.rpcUrl).catch(() => {});
     }
     setCopiedRpc(true);
-    onCopyAddress?.(MST_RPC_URL, "RPC URL");
+    onCopyAddress?.(activeConfig.rpcUrl, "RPC URL");
     setTimeout(() => setCopiedRpc(false), 2000);
   };
 
@@ -66,7 +69,12 @@ export function RightSidebar({ onCopyAddress }: RightSidebarProps) {
           {/* Chain & Currency */}
           <div className="flex items-center justify-between">
             <span className="text-[#8b949e]">Chain ID</span>
-            <span className="font-mono text-[#f0f6fc] font-semibold">{MST_CHAIN_ID}</span>
+            <span className="font-mono text-[#f0f6fc] font-semibold">{activeConfig.id}</span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-[#8b949e]">Network</span>
+            <span className="font-mono text-emerald-400 font-semibold">{activeConfig.name}</span>
           </div>
 
           <div className="flex items-center justify-between">
@@ -92,7 +100,7 @@ export function RightSidebar({ onCopyAddress }: RightSidebarProps) {
               </button>
             </div>
             <code className="block p-1.5 rounded bg-[#0d1117] border border-[#30363d] text-[10px] text-[#c9d1d9] truncate font-mono select-all">
-              {MST_RPC_URL}
+              {activeConfig.rpcUrl}
             </code>
           </div>
 

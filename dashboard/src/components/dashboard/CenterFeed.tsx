@@ -5,7 +5,6 @@ import {
   GitPullRequest,
   Clock,
   ArrowUpRight,
-  Shield,
   Layers,
   Sparkles,
   AlertTriangle,
@@ -20,8 +19,6 @@ export interface CenterFeedProps {
   recentEvents: RollbackEvent[];
   onSelectRepo: (repoId: string) => void;
   onNavigatePR: (prId: number) => void;
-  onSimulateHack?: () => void;
-  onRollback?: () => void;
 }
 
 export function CenterFeed({
@@ -31,8 +28,6 @@ export function CenterFeed({
   recentEvents,
   onSelectRepo,
   onNavigatePR,
-  onSimulateHack,
-  onRollback,
 }: CenterFeedProps) {
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -54,7 +49,7 @@ export function CenterFeed({
             <h1 className="text-lg font-bold text-[#f0f6fc] tracking-tight">{greeting}</h1>
           </div>
           <p className="text-xs text-[#8b949e] max-w-xl leading-relaxed">
-            Welcome to SolGit — Git-style smart contract version control & AI self-healing on the MST Coral Testnet (Chain ID 54635).
+            Welcome to SolGit — Git-style smart contract version control & AI self-healing on the MST Blockchain.
           </p>
         </div>
       </div>
@@ -191,34 +186,6 @@ export function CenterFeed({
               </div>
             ))
           )}
-
-          {/* Interactive Quick Simulation Action */}
-          <div className="p-4 bg-[#0d1117]/40 flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2 text-[11px] text-[#8b949e]">
-              <Shield className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Simulate exploit attack vector against Diamond Proxy:</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {onSimulateHack && (
-                <button
-                  type="button"
-                  onClick={onSimulateHack}
-                  className="px-2.5 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[11px] font-medium transition cursor-pointer"
-                >
-                  Simulate Exploit
-                </button>
-              )}
-              {onRollback && (
-                <button
-                  type="button"
-                  onClick={onRollback}
-                  className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-medium transition cursor-pointer"
-                >
-                  Trigger Guardian Rollback
-                </button>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

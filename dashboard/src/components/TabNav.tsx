@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Code, GitCommit, GitPullRequest, ShieldAlert, Cpu } from "lucide-react";
+import { Code, GitCommit, GitPullRequest, ShieldAlert } from "lucide-react";
 import type { TabType } from "../lib/types";
 
 export interface TabNavProps {
@@ -22,7 +22,7 @@ interface NavTabItem {
 export function TabNav({
   activeTab,
   onTabChange,
-  prCount = 1,
+  prCount = 0,
   hasSecurityAlert = false,
 }: TabNavProps) {
   const tabs: NavTabItem[] = [
@@ -40,7 +40,7 @@ export function TabNav({
       id: "pulls",
       label: "Pull Requests",
       icon: GitPullRequest,
-      badge: prCount,
+      badge: prCount > 0 ? prCount : undefined,
     },
     {
       id: "security",
@@ -48,11 +48,6 @@ export function TabNav({
       icon: ShieldAlert,
       hasAlert: hasSecurityAlert,
       badge: hasSecurityAlert ? "ALERT" : undefined,
-    },
-    {
-      id: "loupe",
-      label: "Diamond Loupe",
-      icon: Cpu,
     },
   ];
 

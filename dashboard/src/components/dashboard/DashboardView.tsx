@@ -3,7 +3,6 @@
 import React from "react";
 import { LeftSidebar } from "./LeftSidebar";
 import { CenterFeed } from "./CenterFeed";
-import { RightSidebar } from "./RightSidebar";
 import type { Repository, PullRequestItem, RollbackEvent } from "../../lib/types";
 
 export interface DashboardViewProps {
@@ -18,9 +17,6 @@ export interface DashboardViewProps {
   pullRequests: PullRequestItem[];
   recentEvents: RollbackEvent[];
   onNavigatePR: (prId: number) => void;
-  onSimulateHack?: () => void;
-  onRollback?: () => void;
-  onCopyAddress?: (text: string, label?: string) => void;
 }
 
 export function DashboardView({
@@ -35,14 +31,11 @@ export function DashboardView({
   pullRequests,
   recentEvents,
   onNavigatePR,
-  onSimulateHack,
-  onRollback,
-  onCopyAddress,
 }: DashboardViewProps) {
   return (
     <main className="max-w-[1440px] mx-auto px-4 py-6 w-full animate-in fade-in duration-150">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Column (Span 3): Home/Feed Navigation + Top Repositories */}
+        {/* Left Column (Span 3): Top Repositories */}
         <div className="lg:col-span-3">
           <LeftSidebar
             repos={repos}
@@ -54,8 +47,8 @@ export function DashboardView({
           />
         </div>
 
-        {/* Center Column (Span 6): Greeting + Recent PRs + Contract Activity (Zero Copilot) */}
-        <div className="lg:col-span-6">
+        {/* Center Column (Span 9): Greeting + Recent PRs + Contract Activity */}
+        <div className="lg:col-span-9">
           <CenterFeed
             address={address}
             nickname={nickname}
@@ -63,14 +56,7 @@ export function DashboardView({
             recentEvents={recentEvents}
             onSelectRepo={onSelectRepo}
             onNavigatePR={onNavigatePR}
-            onSimulateHack={onSimulateHack}
-            onRollback={onRollback}
           />
-        </div>
-
-        {/* Right Column (Span 3): MST Blockchain Status + Changelog */}
-        <div className="lg:col-span-3">
-          <RightSidebar onCopyAddress={onCopyAddress} />
         </div>
       </div>
     </main>

@@ -202,7 +202,10 @@ export function Toast({ notification, onClose }: ToastProps) {
           <div
             className={`h-full ${config.progressBar}`}
             style={{
-              animation: `toast-shrink ${duration}ms linear forwards`,
+              animationName: "toast-shrink",
+              animationDuration: `${duration}ms`,
+              animationTimingFunction: "linear",
+              animationFillMode: "forwards",
               animationPlayState: isPaused ? "paused" : "running",
             }}
           />

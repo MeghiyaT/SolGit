@@ -7,7 +7,6 @@ import {
   GitCommit,
   GitPullRequest,
   ShieldAlert,
-  Layers,
   FileCode,
   FileText,
   Flame,
@@ -138,20 +137,6 @@ export function CommandPalette({
           onClose();
         },
       },
-      {
-        id: "nav-loupe",
-        category: "Navigation",
-        title: "Diamond Loupe (EIP-2535)",
-        description: "Interactive facet inspector, diamondCut history & function dispatch table",
-        keywords: ["loupe", "diamond", "eip-2535", "facets", "selectors", "proxy", "dispatch"],
-        icon: <Layers className="h-4 w-4 text-blue-400" />,
-        badge: "Tab 5",
-        shortcut: "⌥5",
-        perform: () => {
-          onSelectTab("loupe");
-          onClose();
-        },
-      },
 
       // 2. Files
       ...REPO_FILES.map((file) => ({
@@ -183,7 +168,7 @@ export function CommandPalette({
         icon: <Code className="h-4 w-4 text-indigo-400" />,
         badge: `v${sel.currentVersion} Active`,
         perform: () => {
-          onSelectTab("loupe");
+          onSelectTab("code");
           onClose();
         },
       })),

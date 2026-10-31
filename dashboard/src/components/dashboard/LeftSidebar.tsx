@@ -2,8 +2,6 @@
 
 import React, { useState } from "react";
 import {
-  Home,
-  Rss,
   Search,
   BookOpen,
   Plus,
@@ -30,7 +28,6 @@ export function LeftSidebar({
   isConnected = false,
   onRequireWallet,
 }: LeftSidebarProps) {
-  const [activeNav, setActiveNav] = useState<"home" | "feed">("home");
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleNewClick = () => {
@@ -49,37 +46,8 @@ export function LeftSidebar({
 
   return (
     <aside className="space-y-6 text-xs text-[#c9d1d9]" aria-label="Left Sidebar">
-      {/* Top Navigation Links */}
-      <nav aria-label="Dashboard Primary Navigation" className="space-y-1">
-        <button
-          type="button"
-          onClick={() => setActiveNav("home")}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition cursor-pointer text-left ${
-            activeNav === "home"
-              ? "bg-[#21262d] text-white"
-              : "text-[#8b949e] hover:bg-[#161b22] hover:text-[#f0f6fc]"
-          }`}
-        >
-          <Home className="w-4 h-4 text-[#8b949e]" />
-          <span>Home</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveNav("feed")}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition cursor-pointer text-left ${
-            activeNav === "feed"
-              ? "bg-[#21262d] text-white"
-              : "text-[#8b949e] hover:bg-[#161b22] hover:text-[#f0f6fc]"
-          }`}
-        >
-          <Rss className="w-4 h-4 text-[#8b949e]" />
-          <span>Feed</span>
-        </button>
-      </nav>
-
       {/* Top Repositories Section */}
-      <div className="space-y-3 pt-2 border-t border-[#30363d]">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-[#f0f6fc] text-xs">Top repositories</h2>
           <button
