@@ -14,7 +14,13 @@ import {
   X,
 } from "lucide-react";
 import { useWeb3Wallet } from "../../hooks/useWeb3Wallet";
-import { formatAddress, MST_EXPLORER_URL, MST_FAUCET_URL, MST_CHAIN_ID } from "../../lib/mstChain";
+import {
+  formatAddress,
+  MST_FAUCET_URL,
+  MST_CORAL_CHAIN_ID,
+  MST_TESTNET_CHAIN_ID,
+  getMSTChainConfig,
+} from "../../lib/mstChain";
 import { IdenticonAvatar } from "./IdenticonAvatar";
 
 export interface WalletButtonProps {
@@ -27,6 +33,7 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
     checksumAddress,
     nickname,
     balance,
+    chainId,
     isConnecting,
     isConnected,
     isWrongNetwork,
@@ -36,6 +43,8 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
     disconnectWallet,
     switchNetwork,
   } = useWeb3Wallet();
+
+  const activeChainConfig = getMSTChainConfig(chainId);
 
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -199,7 +208,10 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
             <span>Wrong Net</span>
           </span>
         ) : (
-          <span className="h-2 w-2 rounded-full bg-emerald-500 hidden sm:inline-block" title="Connected to MST Coral Testnet" />
+          <span
+            className="h-2 w-2 rounded-full bg-emerald-500 hidden sm:inline-block"
+            title={`Connected to ${activeChainConfig.name} (${activeChainConfig.id})`}
+          />
         )}
 
         <ChevronDown className="w-3 h-3 text-[#8b949e]" />
@@ -246,17 +258,39 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
               {isWrongNetwork ? (
                 <button
                   type="button"
-                  onClick={switchNetwork}
+                  onClick={() => switchNetwork(MST_CORAL_CHAIN_ID)}
                   className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] transition flex items-center gap-1 cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>Switch to Coral</span>
+                  <span>Switch to MST</span>
                 </button>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  <span>Coral Testnet ({MST_CHAIN_ID})</span>
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-emerald-400 font-mono text-[11px]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    <span>{activeChainConfig.name} ({activeChainConfig.id})</span>
+                  </span>
+                  {chainId === MST_TESTNET_CHAIN_ID && (
+                    <button
+                      type="button"
+                      onClick={() => switchNetwork(MST_CORAL_CHAIN_ID)}
+                      className="text-[10px] text-[#58a6ff] hover:underline cursor-pointer"
+                      title="Switch to MST Coral Testnet (54635)"
+                    >
+                      (to Coral)
+                    </button>
+                  )}
+                  {chainId === MST_CORAL_CHAIN_ID && (
+                    <button
+                      type="button"
+                      onClick={() => switchNetwork(MST_TESTNET_CHAIN_ID)}
+                      className="text-[10px] text-[#58a6ff] hover:underline cursor-pointer"
+                      title="Switch to MST Testnet (91562037)"
+                    >
+                      (to Testnet)
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -279,12 +313,12 @@ export function WalletButton({ onNotify, onEditNickname }: WalletButtonProps) {
               </button>
             )}
             <a
-              href={`${MST_EXPLORER_URL}/address/${checksumAddress}`}
+              href={`${activeChainConfig.explorerUrl}/address/${checksumAddress}`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center justify-between px-3 py-1.5 text-[#c9d1d9] hover:bg-[#21262d] hover:text-[#58a6ff] transition"
             >
-              <span>View on Coral Explorer</span>
+              <span>View on {activeChainConfig.name.includes("Coral") ? "Coral Explorer" : "MST Explorer"}</span>
               <ExternalLink className="w-3.5 h-3.5 text-[#8b949e]" />
             </a>
             <a
