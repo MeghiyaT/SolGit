@@ -1,12 +1,16 @@
 import {
   createWalletClient,
+  createPublicClient,
   http,
   getAddress,
   keccak256,
   toHex,
+  encodeAbiParameters,
+  parseAbiParameters,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { mstTestnet, MST_RPC_URL, MST_EXPLORER_URL } from "./mstChain.ts";
+import { DIAMOND_BYTECODE } from "./diamondBytecode.ts";
 import { saveRepository, type RepoRecord } from "./storage.ts";
 import type { Repository } from "./types.ts";
 
@@ -73,26 +77,57 @@ async function executeDeploy(params: DeployParams): Promise<DeployResult> {
   let contractAddress = "";
 
   try {
-    const walletClient = createWalletClient({
-      account,
-      chain: mstTestnet,
-      transport: http(MST_RPC_URL, { timeout: 8000 }),
-    });
+    if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_MOCK_RELAYER === "true") {
+      const hashBytes = keccak256(toHex(`${formattedRepoName}:${checksummedOwner}:${Date.now()}`));
+      txHash = hashBytes;
+      const addrBytes = keccak256(toHex(`contract:${hashBytes}`)).slice(0, 42);
+      contractAddress = getAddress(`0x${addrBytes.slice(2)}`);
+    } else {
+      const publicClient = createPublicClient({
+        chain: mstTestnet,
+        transport: http(MST_RPC_URL, { timeout: 15000 }),
+      });
 
-    // Deploy or transfer 0 value to confirm transaction with contract metadata in calldata
-    const codeHash = keccak256(toHex(solCode));
-    const tx = await walletClient.sendTransaction({
-      to: checksummedOwner,
-      value: BigInt(0),
-      data: codeHash,
-    });
+      const walletClient = createWalletClient({
+        account,
+        chain: mstTestnet,
+        transport: http(MST_RPC_URL, { timeout: 15000 }),
+      });
 
-    txHash = tx;
-    // Derive on-chain contract address deterministically from txHash & account nonce
-    const derived = keccak256(toHex(`${txHash}:${checksummedOwner}:${Date.now()}`)).slice(0, 42);
-    contractAddress = getAddress(`0x${derived.slice(2)}`);
+      // Construct constructor arguments for SolGitDiamond proxy deployment
+      const constructorArgs = encodeAbiParameters(
+        parseAbiParameters("address, address, (address, uint8, bytes4[])[], address, bytes"),
+        [
+          checksummedOwner,
+          account.address,
+          [],
+          "0x0000000000000000000000000000000000000000",
+          "0x",
+        ]
+      );
+
+      const deployBytecode = `${DIAMOND_BYTECODE}${constructorArgs.slice(2)}` as `0x${string}`;
+
+      // Deploy real bytecode to MST Coral Testnet with no destination address (contract deployment)
+      const hash = await walletClient.sendTransaction({
+        data: deployBytecode,
+      });
+
+      txHash = hash;
+
+      // Wait for on-chain confirmation to get the real mined contract address
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash,
+        timeout: 30000,
+      });
+
+      if (!receipt.contractAddress) {
+        throw new Error("Contract creation succeeded on MST Coral Testnet but returned no contractAddress.");
+      }
+
+      contractAddress = getAddress(receipt.contractAddress);
+    }
   } catch (err: unknown) {
-    // In test or offline simulation environments, generate deterministic hashes
     if (process.env.NODE_ENV === "test" || process.env.NEXT_PUBLIC_MOCK_RELAYER === "true") {
       const hashBytes = keccak256(toHex(`${formattedRepoName}:${checksummedOwner}:${Date.now()}`));
       txHash = hashBytes;

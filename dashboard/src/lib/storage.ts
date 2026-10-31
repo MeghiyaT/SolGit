@@ -30,20 +30,52 @@ interface LocalStoreData {
   repositories: RepoRecord[];
 }
 
-const DATA_DIR = path.resolve(process.cwd(), "data");
-const STORE_FILE = path.join(DATA_DIR, "store.json");
+const isTestEnv = process.env.NODE_ENV === "test";
+const testStore: LocalStoreData = { users: {}, repositories: [] };
+
+function getStorePaths(): { dataDir: string; storeFile: string } {
+  if (process.env.VERCEL) {
+    const tmpDir = path.join("/tmp", "solgit-data");
+    const tmpFile = path.join(tmpDir, "store.json");
+    return { dataDir: tmpDir, storeFile: tmpFile };
+  }
+
+  const localDir = path.join(process.cwd(), "data");
+  const localFile = path.join(localDir, "store.json");
+  if (fs.existsSync(/*turbopackIgnore: true*/ localFile)) {
+    return { dataDir: localDir, storeFile: localFile };
+  }
+
+  const dashDir = path.join(process.cwd(), "dashboard", "data");
+  const dashFile = path.join(dashDir, "store.json");
+  if (fs.existsSync(/*turbopackIgnore: true*/ dashFile)) {
+    return { dataDir: dashDir, storeFile: dashFile };
+  }
+
+  const parentDir = path.join(process.cwd(), "..", "data");
+  const parentFile = path.join(parentDir, "store.json");
+  if (fs.existsSync(/*turbopackIgnore: true*/ parentFile)) {
+    return { dataDir: parentDir, storeFile: parentFile };
+  }
+
+  return { dataDir: localDir, storeFile: localFile };
+}
 
 function ensureStoreFile(): LocalStoreData {
+  if (isTestEnv) {
+    return testStore;
+  }
+  const { dataDir, storeFile } = getStorePaths();
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(/*turbopackIgnore: true*/ dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
-    if (!fs.existsSync(STORE_FILE)) {
+    if (!fs.existsSync(/*turbopackIgnore: true*/ storeFile)) {
       const initial: LocalStoreData = { users: {}, repositories: [] };
-      fs.writeFileSync(STORE_FILE, JSON.stringify(initial, null, 2), "utf8");
+      fs.writeFileSync(storeFile, JSON.stringify(initial, null, 2), "utf8");
       return initial;
     }
-    const content = fs.readFileSync(STORE_FILE, "utf8");
+    const content = fs.readFileSync(/*turbopackIgnore: true*/ storeFile, "utf8");
     return JSON.parse(content) as LocalStoreData;
   } catch {
     return { users: {}, repositories: [] };
@@ -51,16 +83,26 @@ function ensureStoreFile(): LocalStoreData {
 }
 
 function writeStoreFile(data: LocalStoreData): void {
+  if (isTestEnv) {
+    testStore.users = data.users;
+    testStore.repositories = data.repositories;
+    return;
+  }
+  const { dataDir, storeFile } = getStorePaths();
   try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+    if (!fs.existsSync(/*turbopackIgnore: true*/ dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
     }
-    fs.writeFileSync(STORE_FILE, JSON.stringify(data, null, 2), "utf8");
+    fs.writeFileSync(storeFile, JSON.stringify(data, null, 2), "utf8");
   } catch {}
 }
 
 export async function getUser(address: string): Promise<UserRecord | null> {
   const normAddress = address.toLowerCase();
+
+  if (isTestEnv) {
+    return testStore.users[normAddress] || null;
+  }
 
   // 1. Attempt Supabase lookup
   try {
@@ -95,6 +137,11 @@ export async function saveUser(address: string, nickname: string): Promise<UserR
     updated_at: now,
   };
 
+  if (isTestEnv) {
+    testStore.users[normAddress] = userRecord;
+    return userRecord;
+  }
+
   // 1. Save to local store
   const local = ensureStoreFile();
   local.users[normAddress] = userRecord;
@@ -113,6 +160,14 @@ export async function saveUser(address: string, nickname: string): Promise<UserR
 }
 
 export async function getRepositories(ownerAddress?: string): Promise<RepoRecord[]> {
+  if (isTestEnv) {
+    if (ownerAddress) {
+      const norm = ownerAddress.toLowerCase();
+      return testStore.repositories.filter((r) => r.owner_address.toLowerCase() === norm);
+    }
+    return testStore.repositories;
+  }
+
   // 1. Attempt Supabase query
   try {
     let query = supabase.from("repositories").select("*").order("created_at", { ascending: false });
@@ -153,6 +208,16 @@ export async function saveRepository(repo: RepoRecord): Promise<RepoRecord> {
     updated_at: now,
   };
 
+  if (isTestEnv) {
+    const existingIdx = testStore.repositories.findIndex((r) => r.id === fullRepo.id);
+    if (existingIdx >= 0) {
+      testStore.repositories[existingIdx] = fullRepo;
+    } else {
+      testStore.repositories.unshift(fullRepo);
+    }
+    return fullRepo;
+  }
+
   // 1. Save to local store
   const local = ensureStoreFile();
   const existingIdx = local.repositories.findIndex((r) => r.id === fullRepo.id);
@@ -170,4 +235,3 @@ export async function saveRepository(repo: RepoRecord): Promise<RepoRecord> {
 
   return fullRepo;
 }
-

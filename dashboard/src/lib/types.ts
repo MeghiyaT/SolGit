@@ -1,4 +1,4 @@
-export type TabType = 'code' | 'commits' | 'pulls' | 'security' | 'loupe';
+export type TabType = 'code' | 'commits' | 'pulls' | 'security';
 
 export type ViewType = 'dashboard' | 'repository';
 

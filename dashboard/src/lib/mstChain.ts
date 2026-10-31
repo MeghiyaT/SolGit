@@ -1,9 +1,16 @@
 import { defineChain, getAddress, type Chain } from "viem";
 
-export const MST_CHAIN_ID = 54635;
+export const MST_CORAL_CHAIN_ID = 54635;
+export const MST_TESTNET_CHAIN_ID = 91562037;
+export const SUPPORTED_CHAIN_IDS = [MST_CORAL_CHAIN_ID, MST_TESTNET_CHAIN_ID] as const;
+
+export const MST_CHAIN_ID = MST_CORAL_CHAIN_ID;
 export const MST_RPC_URL = "https://coralrpc.mstblockchain.com";
 export const MST_FAUCET_URL = "https://faucet.mstblockchain.com";
 export const MST_EXPLORER_URL = "https://coral.mstscan.com";
+
+export const MST_LEGACY_RPC_URL = "https://testnetrpc.mstblockchain.com";
+export const MST_LEGACY_EXPLORER_URL = "https://testnet.mstscan.com";
 
 export const mstTestnet: Chain = defineChain({
   id: MST_CHAIN_ID,
@@ -26,6 +33,58 @@ export const mstTestnet: Chain = defineChain({
   },
   testnet: true,
 });
+
+export const mstLegacyTestnet: Chain = defineChain({
+  id: MST_TESTNET_CHAIN_ID,
+  name: "MST Testnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "MST Coin",
+    symbol: "tMSTC",
+  },
+  rpcUrls: {
+    default: {
+      http: [MST_LEGACY_RPC_URL],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: "MST Scan",
+      url: MST_LEGACY_EXPLORER_URL,
+    },
+  },
+  testnet: true,
+});
+
+export interface MSTChainConfig {
+  id: number;
+  name: string;
+  rpcUrl: string;
+  explorerUrl: string;
+  faucetUrl: string;
+  chain: Chain;
+}
+
+export function getMSTChainConfig(chainId: number | null | undefined): MSTChainConfig {
+  if (chainId === MST_TESTNET_CHAIN_ID) {
+    return {
+      id: MST_TESTNET_CHAIN_ID,
+      name: "MST Testnet",
+      rpcUrl: MST_LEGACY_RPC_URL,
+      explorerUrl: MST_LEGACY_EXPLORER_URL,
+      faucetUrl: MST_FAUCET_URL,
+      chain: mstLegacyTestnet,
+    };
+  }
+  return {
+    id: MST_CORAL_CHAIN_ID,
+    name: "MST Coral Testnet",
+    rpcUrl: MST_RPC_URL,
+    explorerUrl: MST_EXPLORER_URL,
+    faucetUrl: MST_FAUCET_URL,
+    chain: mstTestnet,
+  };
+}
 
 export function formatAddress(address: string, startChars = 6, endChars = 4): string {
   if (!address) return "";

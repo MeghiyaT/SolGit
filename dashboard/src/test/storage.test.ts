@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+Object.assign(process.env, { NODE_ENV: "test" });
+
 test("storage module exports valid operations", async () => {
   // Test storage interface
   const { getUser, saveUser, getRepositories, saveRepository } = await import("../lib/storage.ts");
