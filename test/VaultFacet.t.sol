@@ -36,14 +36,14 @@ contract VaultFacetTest is Test {
 
     function test_vaultV1_zeroDepositReverts() public {
         vm.prank(alice);
-        vm.expectRevert(SolGitErrors.InvalidVersion.selector);
+        vm.expectRevert(SolGitErrors.ZeroDeposit.selector);
         vaultV1.deposit{value: 0}();
     }
 
     function test_vaultV1_overdrawReverts() public {
         vm.startPrank(alice);
         vaultV1.deposit{value: 5 ether}();
-        vm.expectRevert(SolGitErrors.Unauthorized.selector);
+        vm.expectRevert(abi.encodeWithSelector(SolGitErrors.InsufficientBalance.selector, 5 ether, 10 ether));
         vaultV1.withdraw(10 ether);
         vm.stopPrank();
     }
@@ -51,7 +51,8 @@ contract VaultFacetTest is Test {
     function test_vaultV1_transfer() public {
         vm.startPrank(alice);
         vaultV1.deposit{value: 10 ether}();
-        vaultV1.transfer(bob, 3 ether);
+        bool success = vaultV1.transfer(bob, 3 ether);
+        assertTrue(success, "transfer should return true");
         assertEq(vaultV1.balanceOf(alice), 7 ether);
         assertEq(vaultV1.balanceOf(bob), 3 ether);
         vm.stopPrank();
@@ -62,6 +63,14 @@ contract VaultFacetTest is Test {
         vaultV1.deposit{value: 5 ether}();
         vm.expectRevert(SolGitErrors.ZeroAddress.selector);
         vaultV1.transfer(address(0), 1 ether);
+        vm.stopPrank();
+    }
+
+    function test_vaultV1_transferInsufficientBalanceReverts() public {
+        vm.startPrank(alice);
+        vaultV1.deposit{value: 2 ether}();
+        vm.expectRevert(abi.encodeWithSelector(SolGitErrors.InsufficientBalance.selector, 2 ether, 5 ether));
+        vaultV1.transfer(bob, 5 ether);
         vm.stopPrank();
     }
 

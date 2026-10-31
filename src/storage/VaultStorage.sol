@@ -5,7 +5,7 @@ pragma solidity 0.8.24;
 /// @dev Uses EIP-2535 diamond storage pattern to avoid slot collisions between facets.
 library VaultStorage {
     /// @dev keccak256("solgit.vault.storage") — unique namespace for vault data
-    bytes32 private constant STORAGE_SLOT = 0x8a8dc4e5242ea8b1ab1d60606c71b7e0c3e29793bdb29ec93f4abb1cc481e5ee;
+    bytes32 private constant STORAGE_SLOT = keccak256("solgit.vault.storage");
 
     struct Layout {
         mapping(address => uint256) balances;

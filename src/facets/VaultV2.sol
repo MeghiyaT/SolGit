@@ -25,7 +25,7 @@ contract VaultV2 {
 
     /// @notice Deposit ETH into the vault (same as V1 — correct)
     function deposit() external payable {
-        if (msg.value == 0) revert SolGitErrors.InvalidVersion();
+        if (msg.value == 0) revert SolGitErrors.ZeroDeposit();
 
         VaultStorage.Layout storage vs = VaultStorage.layout();
         vs.balances[msg.sender] += msg.value;
@@ -61,18 +61,21 @@ contract VaultV2 {
     }
 
     /// @notice Transfer balance (same as V1 — correct)
-    function transfer(address to, uint256 amount) external {
+    function transfer(address to, uint256 amount) external returns (bool) {
         if (to == address(0)) revert SolGitErrors.ZeroAddress();
-        if (amount == 0) revert SolGitErrors.InvalidVersion();
+        if (amount == 0) revert SolGitErrors.ZeroAmount();
 
         VaultStorage.Layout storage vs = VaultStorage.layout();
 
-        if (vs.balances[msg.sender] < amount) revert SolGitErrors.Unauthorized();
+        if (vs.balances[msg.sender] < amount) {
+            revert SolGitErrors.InsufficientBalance(vs.balances[msg.sender], amount);
+        }
 
         vs.balances[msg.sender] -= amount;
         vs.balances[to] += amount;
 
         emit Transferred(msg.sender, to, amount);
+        return true;
     }
 
     /// @notice Get balance of an account

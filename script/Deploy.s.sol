@@ -71,12 +71,16 @@ contract Deploy is Script {
             facetAddress: address(ownerFacet), action: IDiamondCut.FacetCutAction.Add, functionSelectors: ownerSelectors
         });
 
-        bytes4[] memory guardianSelectors = new bytes4[](5);
+        bytes4[] memory guardianSelectors = new bytes4[](9);
         guardianSelectors[0] = ISolGitGuardian.guardian.selector;
         guardianSelectors[1] = ISolGitGuardian.setGuardian.selector;
         guardianSelectors[2] = ISolGitGuardian.registerStableFacet.selector;
         guardianSelectors[3] = ISolGitGuardian.isRegisteredStableFacet.selector;
         guardianSelectors[4] = ISolGitGuardian.emergencyRollback.selector;
+        guardianSelectors[5] = ISolGitGuardian.facetSupportsSelector.selector;
+        guardianSelectors[6] = ISolGitGuardian.registerStableFacetWithSelectors.selector;
+        guardianSelectors[7] = ISolGitGuardian.setVersionRegistry.selector;
+        guardianSelectors[8] = ISolGitGuardian.versionRegistry.selector;
         cuts[3] = IDiamondCut.FacetCut({
             facetAddress: address(guardianFacet),
             action: IDiamondCut.FacetCutAction.Add,
@@ -95,6 +99,10 @@ contract Deploy is Script {
         // 5. Deploy SolGit Diamond Proxy
         SolGitDiamond diamond = new SolGitDiamond(deployer, guardianAddress, cuts, address(0), "");
         console.log("SolGitDiamond (Permanent Address):", address(diamond));
+
+        // Link SolGitDiamond and VersionRegistry for unified on-chain state
+        registry.setRouter(address(diamond));
+        ISolGitGuardian(address(diamond)).setVersionRegistry(address(registry));
 
         // Register VaultV1 as trusted stable facet
         ISolGitGuardian(address(diamond)).registerStableFacet(address(vaultV1), true);

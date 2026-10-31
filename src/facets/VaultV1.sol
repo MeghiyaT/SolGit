@@ -22,7 +22,7 @@ contract VaultV1 {
 
     /// @notice Deposit ETH into the vault
     function deposit() external payable {
-        if (msg.value == 0) revert SolGitErrors.InvalidVersion(); // reuse error for "zero deposit"
+        if (msg.value == 0) revert SolGitErrors.ZeroDeposit();
 
         VaultStorage.Layout storage vs = VaultStorage.layout();
         vs.balances[msg.sender] += msg.value;
@@ -37,8 +37,10 @@ contract VaultV1 {
         VaultStorage.Layout storage vs = VaultStorage.layout();
 
         // Checks
-        if (amount == 0) revert SolGitErrors.InvalidVersion();
-        if (vs.balances[msg.sender] < amount) revert SolGitErrors.Unauthorized();
+        if (amount == 0) revert SolGitErrors.ZeroAmount();
+        if (vs.balances[msg.sender] < amount) {
+            revert SolGitErrors.InsufficientBalance(vs.balances[msg.sender], amount);
+        }
 
         // Effects (CEI: state before interaction)
         vs.balances[msg.sender] -= amount;
@@ -46,7 +48,7 @@ contract VaultV1 {
 
         // Interactions
         (bool ok,) = msg.sender.call{value: amount}("");
-        if (!ok) revert SolGitErrors.Unauthorized();
+        if (!ok) revert SolGitErrors.EthTransferFailed();
 
         emit Withdrawn(msg.sender, amount);
     }
@@ -54,18 +56,22 @@ contract VaultV1 {
     /// @notice Transfer balance to another account within the vault
     /// @param to Recipient address
     /// @param amount Amount to transfer
-    function transfer(address to, uint256 amount) external {
+    /// @return Success boolean
+    function transfer(address to, uint256 amount) external returns (bool) {
         if (to == address(0)) revert SolGitErrors.ZeroAddress();
-        if (amount == 0) revert SolGitErrors.InvalidVersion();
+        if (amount == 0) revert SolGitErrors.ZeroAmount();
 
         VaultStorage.Layout storage vs = VaultStorage.layout();
 
-        if (vs.balances[msg.sender] < amount) revert SolGitErrors.Unauthorized();
+        if (vs.balances[msg.sender] < amount) {
+            revert SolGitErrors.InsufficientBalance(vs.balances[msg.sender], amount);
+        }
 
         vs.balances[msg.sender] -= amount;
         vs.balances[to] += amount;
 
         emit Transferred(msg.sender, to, amount);
+        return true;
     }
 
     /// @notice Get balance of an account
