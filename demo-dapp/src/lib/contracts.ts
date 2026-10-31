@@ -1,12 +1,17 @@
 import {
   createPublicClient,
+  createWalletClient,
   http,
+  custom,
   defineChain,
   type Address,
   parseAbi,
   parseEther,
   formatEther,
+  encodeFunctionData,
+  decodeErrorResult,
 } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 
 export const mstCoralTestnet = defineChain({
   id: 54635,
@@ -16,14 +21,17 @@ export const mstCoralTestnet = defineChain({
     default: { http: ["https://coralrpc.mstblockchain.com"] },
   },
   blockExplorers: {
-    default: { name: "MSTScan", url: "https://coralscan.mstblockchain.com" },
+    default: { name: "MSTScan", url: "https://coral.mstscan.com" },
   },
 });
 
-export const DEFAULT_DIAMOND_ADDRESS: Address = "0x3348f760E980326079011707B9E40a6b29910D69";
-export const VAULT_V1_ADDRESS: Address = "0xF717aaE8398DA7E340c781418992b80D692253f8";
-export const VAULT_V2_ADDRESS: Address = "0x9169632420f8bb15F67876e0708577F1a757BCB7";
-export const VAULT_V2_FIXED_ADDRESS: Address = "0x1bFA792F6cfA1E2B8D24E62a900c76C8983eA8fD";
+export const DEFAULT_DIAMOND_ADDRESS: Address = "0x56B05b503A117840A73740a1b8744B12732e44e5";
+export const VAULT_V1_ADDRESS: Address = "0x463DC23a3E649Cf3FF54762F6588f1D71C207c01";
+export const VAULT_V2_ADDRESS: Address = "0x91697d3d38C493F76745dcC72FBe248Fc14fBCB7";
+export const VAULT_V2_FIXED_ADDRESS: Address = "0xb1C889707d426A7A386870A03bc70d1b06975990";
+
+export const ALICE_TESTNET_KEY = "0x58f67a2fc47b3e90aa7a1a97b49f7f1b0e90695793da4b8367101d7ae0c59899" as const;
+export const ALICE_TESTNET_ADDRESS: Address = "0x0318A1Df19a78f6784CbDDcE768EEF970C561493";
 
 export const VAULT_ABI = parseAbi([
   "function deposit() external payable",
@@ -32,6 +40,10 @@ export const VAULT_ABI = parseAbi([
   "function transfer(address to, uint256 amount) external returns (bool)",
   "event Deposited(address indexed account, uint256 amount)",
   "event Withdrawn(address indexed account, uint256 amount)",
+  "error InsufficientBalance(uint256 available, uint256 requested)",
+  "error InvariantViolation(bytes32 invariantId)",
+  "error ZeroAmount()",
+  "error ZeroDeposit()",
 ]);
 
 export function getPublicClient(rpcUrl?: string) {
@@ -41,5 +53,20 @@ export function getPublicClient(rpcUrl?: string) {
   });
 }
 
-export { parseEther, formatEther };
+export function getAliceWalletClient(rpcUrl?: string) {
+  const account = privateKeyToAccount(ALICE_TESTNET_KEY);
+  return createWalletClient({
+    account,
+    chain: mstCoralTestnet,
+    transport: http(rpcUrl || "https://coralrpc.mstblockchain.com"),
+  });
+}
 
+export function getInjectedWalletClient(ethereumProvider: any) {
+  return createWalletClient({
+    chain: mstCoralTestnet,
+    transport: custom(ethereumProvider),
+  });
+}
+
+export { parseEther, formatEther, encodeFunctionData, decodeErrorResult, privateKeyToAccount };
