@@ -141,14 +141,30 @@ export function AIFixerConsole({
   const [copied, setCopied] = useState<boolean>(false);
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const prevHackedRef = useRef(isHacked);
+  const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   const handleStartSimulation = useCallback(() => {
+    if (simulationIntervalRef.current) {
+      clearInterval(simulationIntervalRef.current);
+      simulationIntervalRef.current = null;
+    }
+
     setIsRunning(true);
     setDisplayedLogs([]);
     setCurrentStep(1);
 
     let logIndex = 0;
-    const interval = setInterval(() => {
+    simulationIntervalRef.current = setInterval(() => {
       if (logIndex < rawLogs.length) {
         const item = rawLogs[logIndex];
         const newEntry: LogEntry = {
@@ -174,7 +190,10 @@ export function AIFixerConsole({
         setCurrentStep(item.step);
         logIndex++;
       } else {
-        clearInterval(interval);
+        if (simulationIntervalRef.current) {
+          clearInterval(simulationIntervalRef.current);
+          simulationIntervalRef.current = null;
+        }
         setIsRunning(false);
         setCurrentStep(5);
       }
@@ -193,6 +212,11 @@ export function AIFixerConsole({
     if (!prevHackedRef.current && isHacked) {
       handleStartSimulation();
     } else if (prevHackedRef.current && !isHacked) {
+      if (simulationIntervalRef.current) {
+        clearInterval(simulationIntervalRef.current);
+        simulationIntervalRef.current = null;
+      }
+      setIsRunning(false);
       setCurrentStep(0);
       setDisplayedLogs([]);
     }

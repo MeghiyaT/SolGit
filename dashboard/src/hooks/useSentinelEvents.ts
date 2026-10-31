@@ -349,60 +349,10 @@ export function useSentinelEvents(options: UseSentinelEventsOptions = {}): UseSe
 
     init();
 
-    // Subscribe to on-chain events via publicClient.watchContractEvent
-    const unwatchDeposited = client.watchContractEvent({
+    // Subscribe to all on-chain events in SENTINEL_ABI via single publicClient.watchContractEvent
+    const unwatch = client.watchContractEvent({
       address: targetAddress,
       abi: SENTINEL_ABI,
-      eventName: "Deposited",
-      pollingInterval: 3000,
-      onLogs: (newLogs) => {
-        if (!isMounted) return;
-        for (const log of newLogs) {
-          const { event } = parseSentinelLog(log);
-          setEvents((prev) => [event, ...prev.filter((e) => e.id !== event.id)]);
-          eventCallbackRef.current?.(event);
-        }
-      },
-    });
-
-    const unwatchWithdrawn = client.watchContractEvent({
-      address: targetAddress,
-      abi: SENTINEL_ABI,
-      eventName: "Withdrawn",
-      pollingInterval: 3000,
-      onLogs: (newLogs) => {
-        if (!isMounted) return;
-        for (const log of newLogs) {
-          const { event } = parseSentinelLog(log);
-          setEvents((prev) => [event, ...prev.filter((e) => e.id !== event.id)]);
-          eventCallbackRef.current?.(event);
-        }
-      },
-    });
-
-    const unwatchEmergencyRollback = client.watchContractEvent({
-      address: targetAddress,
-      abi: SENTINEL_ABI,
-      eventName: "EmergencyRollbackExecuted",
-      pollingInterval: 3000,
-      onLogs: (newLogs) => {
-        if (!isMounted) return;
-        for (const log of newLogs) {
-          const { event, rollback } = parseSentinelLog(log);
-          setEvents((prev) => [event, ...prev.filter((e) => e.id !== event.id)]);
-          if (rollback) {
-            setRollbackIncidents((prev) => [rollback, ...prev.filter((r) => r.id !== rollback.id)]);
-            rollbackCallbackRef.current?.(rollback);
-          }
-          eventCallbackRef.current?.(event);
-        }
-      },
-    });
-
-    const unwatchSelectorRolledBack = client.watchContractEvent({
-      address: targetAddress,
-      abi: SENTINEL_ABI,
-      eventName: "SelectorRolledBack",
       pollingInterval: 3000,
       onLogs: (newLogs) => {
         if (!isMounted) return;
@@ -420,10 +370,7 @@ export function useSentinelEvents(options: UseSentinelEventsOptions = {}): UseSe
 
     return () => {
       isMounted = false;
-      unwatchDeposited();
-      unwatchWithdrawn();
-      unwatchEmergencyRollback();
-      unwatchSelectorRolledBack();
+      unwatch();
     };
   }, [targetAddress, fromBlock]);
 
