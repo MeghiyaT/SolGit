@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -8,10 +8,14 @@ import {
   RotateCcw,
   ExternalLink,
   Activity,
+  Radio,
+  ArrowDownLeft,
+  ArrowUpRight,
 } from "lucide-react";
 import { type RollbackEvent } from "../../lib/data";
 import { type Repository } from "../../lib/types";
 import { AIFixerConsole } from "../AIFixerConsole";
+import type { OnChainContractEvent } from "../../hooks/useSentinelEvents";
 
 export interface SecurityTabProps {
   isHacked: boolean;
@@ -25,6 +29,7 @@ export interface SecurityTabProps {
   activeRepo?: Repository | null;
   vaultTvl?: number | string;
   blockNumber?: bigint | null;
+  onChainEvents?: OnChainContractEvent[];
 }
 
 export function SecurityTab({
@@ -37,7 +42,9 @@ export function SecurityTab({
   activeRepo,
   vaultTvl = "0.0000",
   blockNumber,
+  onChainEvents = [],
 }: SecurityTabProps) {
+  const [activeStreamTab, setActiveStreamTab] = useState<"incidents" | "onchain">("incidents");
   const contractName = activeRepo?.name || "CoralVault";
   const formattedTvl =
     typeof vaultTvl === "number"
@@ -180,65 +187,186 @@ export function SecurityTab({
         onMergeFix={onMergeFix}
         onNavigatePR={onNavigatePR}
         onReset={onReset}
+        blockNumber={blockNumber}
+        activeRepo={activeRepo}
+        events={events}
+        latestIncident={events[0] || null}
       />
 
       {/* ───────────────────────────────────────────────────── */}
-      {/* 3. Security Event Stream Table                        */}
+      {/* 3. Security Event Stream Table & Sentinel Feed        */}
       {/* ───────────────────────────────────────────────────── */}
       <div className="rounded-3xl border border-white/10 bg-[#0d1117] p-6 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-sm font-bold text-white">Security & Rollback Incident Log</h3>
+            <h3 className="text-sm font-bold text-white">Sentinel On-Chain Event & Incident Stream</h3>
           </div>
-          <span className="text-[11px] text-zinc-500 font-mono">
-            {events.length} {events.length === 1 ? "Incident" : "Incidents"} Recorded
-          </span>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveStreamTab("incidents")}
+              className={`px-3 py-1 rounded-xl text-xs font-mono font-medium transition cursor-pointer ${
+                activeStreamTab === "incidents"
+                  ? "bg-zinc-800 text-rose-300 border border-zinc-700"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              Rollback Incidents ({events.length})
+            </button>
+            <button
+              onClick={() => setActiveStreamTab("onchain")}
+              className={`px-3 py-1 rounded-xl text-xs font-mono font-medium transition cursor-pointer flex items-center gap-1.5 ${
+                activeStreamTab === "onchain"
+                  ? "bg-zinc-800 text-emerald-300 border border-zinc-700"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+              <span>Live On-Chain Events ({onChainEvents.length})</span>
+            </button>
+          </div>
         </div>
 
-        {events.length === 0 ? (
-          <div className="py-12 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
-            <ShieldCheck className="w-8 h-8 text-emerald-500/50" />
-            <span>No security incidents recorded. System running normally.</span>
-          </div>
-        ) : (
-          <div className="divide-y divide-white/10">
-            {events.map((evt) => (
-              <div
-                key={evt.id}
-                className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/40">
-                      Selector: {evt.selector}
-                    </span>
-                    <span className="font-semibold text-white">
-                      emergencyRollback(v{evt.badVersion} → v{evt.goodVersion})
-                    </span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
-                      {evt.status}
-                    </span>
-                  </div>
-                  <p className="text-zinc-400 text-[11px]">
-                    Trigger: <span className="text-amber-300 font-mono">{evt.invariant}</span>
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0 font-mono text-[11px] text-zinc-400">
-                  <span className="truncate max-w-[120px]">{evt.txHash.slice(0, 12)}...</span>
-                  <a
-                    href={`https://coralscan.mstblockchain.com/tx/${evt.txHash}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="p-1 rounded hover:bg-white/10 text-cyan-400 hover:text-cyan-300 transition"
-                    title="View on MSTScan"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
+        {activeStreamTab === "incidents" && (
+          <div>
+            {events.length === 0 ? (
+              <div className="py-12 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
+                <ShieldCheck className="w-8 h-8 text-emerald-500/50" />
+                <span>No security incidents recorded. System running normally on MST Coral.</span>
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-white/10">
+                {events.map((evt) => (
+                  <div
+                    key={evt.id}
+                    className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono font-bold text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800/40">
+                          Selector: {evt.selector}
+                        </span>
+                        <span className="font-semibold text-white">
+                          emergencyRollback(v{evt.badVersion} → v{evt.goodVersion})
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800 font-mono">
+                          {evt.status}
+                        </span>
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          Block #{evt.blockNumber}
+                        </span>
+                      </div>
+                      <p className="text-zinc-400 text-[11px]">
+                        Trigger: <span className="text-amber-300 font-mono">{evt.invariant}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0 font-mono text-[11px] text-zinc-400">
+                      <span className="truncate max-w-[120px]">{evt.txHash.slice(0, 12)}...</span>
+                      <a
+                        href={`https://coral.mstscan.com/tx/${evt.txHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1"
+                        title="View Incident on MST Coral Explorer"
+                      >
+                        <span>MSTScan</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeStreamTab === "onchain" && (
+          <div>
+            {onChainEvents.length === 0 ? (
+              <div className="py-12 text-center text-zinc-500 text-xs flex flex-col items-center gap-2">
+                <Radio className="w-8 h-8 text-emerald-500/50 animate-pulse" />
+                <span>Listening for real-time events on MST Coral Testnet (54635)...</span>
+              </div>
+            ) : (
+              <div className="divide-y divide-white/10">
+                {onChainEvents.map((evt) => {
+                  const isDeposit = evt.eventName === "Deposited";
+                  const isWithdraw = evt.eventName === "Withdrawn";
+                  const isRollback = evt.eventName === "EmergencyRollbackExecuted" || evt.eventName === "SelectorRolledBack";
+
+                  return (
+                    <div
+                      key={evt.id}
+                      className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded border text-[11px] ${
+                              isDeposit
+                                ? "text-emerald-400 bg-emerald-950/60 border-emerald-800/40"
+                                : isWithdraw
+                                ? "text-amber-400 bg-amber-950/60 border-amber-800/40"
+                                : isRollback
+                                ? "text-rose-400 bg-rose-950/60 border-rose-800/40"
+                                : "text-cyan-400 bg-cyan-950/60 border-cyan-800/40"
+                            }`}
+                          >
+                            {isDeposit && <ArrowDownLeft className="w-3 h-3 text-emerald-400" />}
+                            {isWithdraw && <ArrowUpRight className="w-3 h-3 text-amber-400" />}
+                            {isRollback && <ShieldAlert className="w-3 h-3 text-rose-400" />}
+                            <span>{evt.eventName}</span>
+                          </span>
+
+                          <span className="font-mono text-zinc-300">
+                            Block #{String(evt.blockNumber)}
+                          </span>
+
+                          {evt.amountFormatted && (
+                            <span className="font-mono font-bold text-emerald-300 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 text-[11px]">
+                              {evt.amountFormatted}
+                            </span>
+                          )}
+
+                          {evt.selector && (
+                            <span className="font-mono text-cyan-300 text-[11px]">
+                              Selector: {evt.selector}
+                            </span>
+                          )}
+                        </div>
+
+                        {evt.account && (
+                          <p className="text-zinc-500 font-mono text-[11px]">
+                            Account: <span className="text-zinc-400">{evt.account}</span>
+                          </p>
+                        )}
+                        {evt.reason && (
+                          <p className="text-zinc-400 text-[11px]">
+                            Reason: <span className="text-amber-300">{evt.reason}</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3 shrink-0 font-mono text-[11px] text-zinc-400">
+                        <span className="truncate max-w-[120px]">{evt.transactionHash.slice(0, 12)}...</span>
+                        <a
+                          href={evt.explorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1"
+                          title="View on MST Coral Explorer"
+                        >
+                          <span>MSTScan</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>

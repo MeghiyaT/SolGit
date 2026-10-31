@@ -5,8 +5,20 @@ import chalk from "chalk";
 import type { RollbackIncident, FixResult } from "./lib/types.js";
 import { UnifiedAIClient } from "./lib/ai.js";
 
+/**
+ * MST Coral Testnet Parameters (EIP-2535 Diamond Proxy Architecture)
+ */
+export const MST_CORAL_CHAIN_ID = 54635;
+export const MST_CORAL_RPC_URL = process.env.MST_TESTNET_RPC_URL || "https://coralrpc.mstblockchain.com";
+export const MST_CORAL_EXPLORER_URL = "https://coral.mstscan.com";
+export const SOLGIT_MASTER_DIAMOND = "0x56B05b503A117840A73740a1b8744B12732e44e5";
+export const SOLGIT_VERSION_REGISTRY = "0x88FE3bAF29B6f5A3D8343B959dfB3516E2DA6B27";
+export const SOLGIT_GUARDIAN_FACET = "0xD3dcC7D6cC2e1f0F5A31f8Ba94c42F1c2F72d771";
+
 export async function generateFix(incident: RollbackIncident): Promise<FixResult> {
   console.log(chalk.bold(`\n[AI Fixer] Analyzing vulnerable facet for quarantined selector ${incident.selector}...`));
+  console.log(chalk.gray(`  Network: MST Coral Testnet (${MST_CORAL_CHAIN_ID}) | RPC: ${MST_CORAL_RPC_URL}`));
+  console.log(chalk.gray(`  Target Diamond: ${SOLGIT_MASTER_DIAMOND}`));
 
   // Find project root directory
   let rootDir = process.cwd();

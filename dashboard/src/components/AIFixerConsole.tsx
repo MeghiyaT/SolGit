@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Terminal,
   CheckCircle2,
@@ -13,7 +13,11 @@ import {
   Maximize2,
   Minimize2,
   Zap,
+  ExternalLink,
 } from "lucide-react";
+import { CONTRACTS } from "../lib/data";
+import type { Repository, RollbackEvent } from "../lib/types";
+import { buildRawLogs } from "../hooks/useSentinelEvents";
 
 interface LogEntry {
   id: string;
@@ -25,13 +29,17 @@ interface LogEntry {
   highlight?: boolean;
 }
 
-interface AIFixerConsoleProps {
+export interface AIFixerConsoleProps {
   isHacked: boolean;
   isMerged?: boolean;
   onMergeFix?: () => void;
   onNavigatePR?: () => void;
   onReset?: () => void;
   compact?: boolean;
+  blockNumber?: bigint | number | null;
+  activeRepo?: Repository | null;
+  latestIncident?: RollbackEvent | null;
+  events?: RollbackEvent[];
 }
 
 const STAGES = [
@@ -72,64 +80,7 @@ const STAGES = [
   },
 ];
 
-const RAW_LOGS: Array<{ step: number; tag: LogEntry["stageTag"]; text: string; highlight?: boolean }> = [
-  // Stage 1: Intercept
-  { step: 1, tag: "[INTERCEPT]", text: "SolGit Autonomous Sentinel Node #04 monitoring MST Coral Testnet (Chain ID 54635)" },
-  { step: 1, tag: "[INTERCEPT]", text: "Incoming TX 0x892a0e882419c836dbf19c08a9f4c71829e018a7b94c029e84a9c812739a1 to Diamond 0x3348...0D69", highlight: true },
-  { step: 1, tag: "[INTERCEPT]", text: "Calldata: 0x2e1a7d4d (withdraw) | Value requested: 200.0000 tMSTC" },
-  { step: 1, tag: "[INTERCEPT]", text: "⚠️ Invariant Breach Asserted: OUTFLOW_CAP_BREACHED [attempted: 200 tMSTC > limit: 100 tMSTC]", highlight: true },
-  { step: 1, tag: "[INTERCEPT]", text: "Caller 0x9dF0C6b...4e has 0 balance! Arithmetic underflow attack detected on VaultV2." },
-
-  // Stage 2: Defense
-  { step: 2, tag: "[DEFENSE]", text: "Guardian role triggered on SolGitDiamond (0x3348...0D69)" },
-  { step: 2, tag: "[DEFENSE]", text: "Invoking LibDiamond.emergencyRollback(selector: 0x2e1a7d4d, targetVersion: 1)", highlight: true },
-  { step: 2, tag: "[DEFENSE]", text: "✔ On-chain TX confirmed in Block #120486: Selector 0x2e1a7d4d redirected to VaultV1 (0xF717...53f8)" },
-  { step: 2, tag: "[DEFENSE]", text: "🛡️ Zero Downtime Maintained: deposit(), transfer(), and balanceOf() remain 100% active.", highlight: true },
-  { step: 2, tag: "[DEFENSE]", text: "Compromised Facet VaultV2 (0x9169...BCB7) quarantined in VersionRegistry." },
-
-  // Stage 3: AI Auditor
-  { step: 3, tag: "[AI AUDITOR]", text: "Dispatching incident trace to Groq LLM (Llama-3.3-70b-versatile)" },
-  { step: 3, tag: "[AI AUDITOR]", text: "Analyzing abstract syntax tree (AST) of contracts/facets/VaultV2.sol..." },
-  { step: 3, tag: "[AI AUDITOR]", text: "Vulnerability identified: unchecked block around `vs.balances[msg.sender] -= amount` without guard", highlight: true },
-  { step: 3, tag: "[AI AUDITOR]", text: "Generating hotfix with Checks-Effects-Interactions (CEI) & SafeMath invariants..." },
-  { step: 3, tag: "[AI AUDITOR]", text: "✔ Patch synthesized: VaultV2Fixed.sol (+12 lines, -8 lines).", highlight: true },
-
-  // Stage 4: Sandbox
-  { step: 4, tag: "[SANDBOX]", text: "Spawning isolated Foundry sandbox container..." },
-  { step: 4, tag: "[SANDBOX]", text: "$ forge test --match-contract VaultV2FixedTest -vvv", highlight: true },
-  { step: 4, tag: "[SANDBOX]", text: "  [PASS] testWithdrawLegitimateBalance() (gas: 18420)" },
-  { step: 4, tag: "[SANDBOX]", text: "  [PASS] testWithdrawUnderflowExploitReverts() (gas: 21045)" },
-  { step: 4, tag: "[SANDBOX]", text: "  [PASS] testDepositAndBalanceTracking() (gas: 31200)" },
-  { step: 4, tag: "[SANDBOX]", text: "  [PASS] invariant_SolvencyHoldsUnderFuzz() (runs: 10,000, gas: 142099)" },
-  { step: 4, tag: "[SANDBOX]", text: "✔ Foundry Sandbox Verdict: 4 passed, 0 failed, 0 regressions. Invariants 100% intact.", highlight: true },
-
-  // Stage 5: Git Engine
-  { step: 5, tag: "[GIT ENGINE]", text: "Initializing SolGit local workspace branch..." },
-  { step: 5, tag: "[GIT ENGINE]", text: "$ git checkout -b solgit-fix-0x2e1a7d-v2", highlight: true },
-  { step: 5, tag: "[GIT ENGINE]", text: "$ git add src/facets/VaultV2Fixed.sol test/VaultV2FixedTest.t.sol" },
-  { step: 5, tag: "[GIT ENGINE]", text: '$ git commit -m "fix(vault): enforce CEI and checked subtraction on withdraw()"' },
-  { step: 5, tag: "[GIT ENGINE]", text: "✔ Staged Pull Request #42: 'Self-Healing AI Hotfix: VaultV2Fixed.sol'", highlight: true },
-  { step: 5, tag: "[GIT ENGINE]", text: "🚀 Platform ready for 1-Click Pull Request Merge to deploy Version 3 live!" },
-];
-
-const INITIAL_COMPLETED_LOGS: LogEntry[] = RAW_LOGS.map((item, idx) => ({
-  id: `log-init-${idx}`,
-  step: item.step,
-  stageTag: item.tag,
-  tagColor:
-    item.tag === "[INTERCEPT]"
-      ? "text-rose-400 bg-rose-950/60 border-rose-800/60"
-      : item.tag === "[DEFENSE]"
-      ? "text-amber-400 bg-amber-950/60 border-amber-800/60"
-      : item.tag === "[AI AUDITOR]"
-      ? "text-cyan-400 bg-cyan-950/60 border-cyan-800/60"
-      : item.tag === "[SANDBOX]"
-      ? "text-emerald-400 bg-emerald-950/60 border-emerald-800/60"
-      : "text-purple-400 bg-purple-950/60 border-purple-800/60",
-  timestamp: "12:00:00",
-  text: item.text,
-  highlight: item.highlight,
-}));
+export { buildRawLogs };
 
 export function AIFixerConsole({
   isHacked,
@@ -137,11 +88,53 @@ export function AIFixerConsole({
   onMergeFix,
   onNavigatePR,
   compact = false,
+  blockNumber,
+  activeRepo,
+  latestIncident,
+  events,
 }: AIFixerConsoleProps) {
+  const activeIncident = latestIncident || (events && events.length > 0 ? events[0] : null);
+  const activeDiamond = activeRepo?.contractAddress || CONTRACTS.diamond;
+  const activeTxHash = activeIncident?.txHash || "0xa21801e7a4cee367f6dc7b0f93dc7d3c6755a09b9ec5a64f2467fb457ae253b9";
+  const activeBlock = activeIncident?.blockNumber ? String(activeIncident.blockNumber) : blockNumber ? String(blockNumber) : "415022";
+  const activeTime = activeIncident?.timestamp || "MST Coral Live";
+
+  const rawLogs = useMemo(() => {
+    return buildRawLogs({
+      diamondAddress: activeDiamond,
+      txHash: activeTxHash,
+      blockNumber: activeBlock,
+      selector: activeIncident?.selector || "0x2e1a7d4d",
+      targetFacet: CONTRACTS.vaultV1,
+      quarantinedFacet: CONTRACTS.vaultV2,
+    });
+  }, [activeDiamond, activeTxHash, activeBlock, activeIncident?.selector]);
+
+  const initialCompletedLogs = useMemo<LogEntry[]>(() => {
+    return rawLogs.map((item, idx) => ({
+      id: `log-init-${idx}`,
+      step: item.step,
+      stageTag: item.tag,
+      tagColor:
+        item.tag === "[INTERCEPT]"
+          ? "text-rose-400 bg-rose-950/60 border-rose-800/60"
+          : item.tag === "[DEFENSE]"
+          ? "text-amber-400 bg-amber-950/60 border-amber-800/60"
+          : item.tag === "[AI AUDITOR]"
+          ? "text-cyan-400 bg-cyan-950/60 border-cyan-800/60"
+          : item.tag === "[SANDBOX]"
+          ? "text-emerald-400 bg-emerald-950/60 border-emerald-800/60"
+          : "text-purple-400 bg-purple-950/60 border-purple-800/60",
+      timestamp: activeTime,
+      text: item.text,
+      highlight: item.highlight,
+    }));
+  }, [rawLogs, activeTime]);
+
   const [activeTab, setActiveTab] = useState<"stream" | "ai" | "foundry">("stream");
   const [currentStep, setCurrentStep] = useState<number>(isHacked || isMerged ? 5 : 0);
   const [displayedLogs, setDisplayedLogs] = useState<LogEntry[]>(() =>
-    isHacked || isMerged ? INITIAL_COMPLETED_LOGS : []
+    isHacked || isMerged ? initialCompletedLogs : []
   );
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(!compact);
@@ -156,8 +149,8 @@ export function AIFixerConsole({
 
     let logIndex = 0;
     const interval = setInterval(() => {
-      if (logIndex < RAW_LOGS.length) {
-        const item = RAW_LOGS[logIndex];
+      if (logIndex < rawLogs.length) {
+        const item = rawLogs[logIndex];
         const newEntry: LogEntry = {
           id: `log-${Date.now()}-${logIndex}`,
           step: item.step,
@@ -186,7 +179,7 @@ export function AIFixerConsole({
         setCurrentStep(5);
       }
     }, 280);
-  }, []);
+  }, [rawLogs]);
 
   // Auto-scroll terminal
   useEffect(() => {
@@ -226,6 +219,18 @@ export function AIFixerConsole({
               SolGit Sentinel & AI Fixer Telemetry Console
             </span>
           </div>
+          {activeTxHash && (
+            <a
+              href={`https://coral.mstscan.com/tx/${activeTxHash}`}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-[10px] text-cyan-400 hover:text-cyan-300 font-mono transition"
+              title="View Incident on MST Coral Explorer"
+            >
+              <span>Tx: {activeTxHash.slice(0, 8)}...</span>
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          )}
         </div>
 
         <div className="flex items-center gap-3">

@@ -15,6 +15,7 @@ import { NewRepoModal } from "../components/dashboard/NewRepoModal";
 import { NicknameModal } from "../components/wallet/NicknameModal";
 import { Web3WalletProvider, useWeb3Wallet } from "../hooks/useWeb3Wallet";
 import { useOnChainVault } from "../hooks/useOnChainVault";
+import { useSentinelEvents } from "../hooks/useSentinelEvents";
 import {
   INITIAL_SELECTORS,
   INITIAL_EVENTS,
@@ -158,6 +159,21 @@ function DashboardApp() {
     []
   );
 
+  // SolGit Sentinel: Autonomous on-chain event listener on MST Coral Testnet
+  const sentinel = useSentinelEvents({
+    contractAddress: activeRepo?.contractAddress,
+    onRollbackDetected: (incident) => {
+      setIsHacked(true);
+      setEvents((prev) => [incident, ...prev.filter((e) => e.id !== incident.id)]);
+      showToast(
+        "Autonomous Sentinel Intercept!",
+        `On-chain Emergency Rollback detected in block #${incident.blockNumber}. Auto-restored selector ${incident.selector}.`,
+        "error",
+        6000
+      );
+    },
+  });
+
   const handleActionToast = useCallback(
     (msg: string) => {
       showToast("Notification", msg, "info", 3500);
@@ -204,17 +220,18 @@ function DashboardApp() {
       })
     );
 
-    // Prepend a high-severity rollback event with context
+    // Prepend a high-severity rollback event with authentic MST Coral context
+    const realBlock = onChainVault.blockNumber ? Number(onChainVault.blockNumber) : 415022;
     const newEvent: RollbackEvent = {
       id: `evt-${Date.now()}`,
       selector: "0x2e1a7d4d",
       badVersion: 2,
       goodVersion: 1,
-      triggeredBy: "0x67852244E41F39CA15605264536E94BaBf56A4e7",
+      triggeredBy: CONTRACTS.attacker,
       contextHash: "0x0000000000000000000000000000000000000000000000000000000000000000",
-      txHash: "0x" + Array.from({ length: 64 }, () => Math.floor(Math.random() * 16).toString(16)).join(""),
-      blockNumber: 4892015,
-      timestamp: "Just now",
+      txHash: "0xa21801e7a4cee367f6dc7b0f93dc7d3c6755a09b9ec5a64f2467fb457ae253b9",
+      blockNumber: realBlock,
+      timestamp: `MST Coral Block #${realBlock}`,
       status: "BLOCKED & ROLLED BACK",
       invariant: "OUTFLOW_CAP <= 100 ether && balance >= minReserve",
     };
@@ -226,7 +243,7 @@ function DashboardApp() {
       "error",
       5000
     );
-  }, [showToast]);
+  }, [showToast, onChainVault.blockNumber]);
 
   // 2. PR Merged / AI Fix Deployed -> Upgrade to Version 3
   const handleMergeFix = useCallback(() => {
@@ -394,7 +411,7 @@ function DashboardApp() {
           isConnected={wallet.isConnected}
           onRequireWallet={(msg) => showToast("BridgeKey Required", msg, "warning")}
           pullRequests={pullRequests}
-          recentEvents={events}
+          recentEvents={events.length > 0 ? events : sentinel.rollbackIncidents}
           onNavigatePR={() => {
             setCurrentView("repository");
             setActiveTab("pulls");
@@ -466,7 +483,7 @@ function DashboardApp() {
               {activeTab === "security" && (
                 <SecurityTab
                   isHacked={isHacked}
-                  events={events}
+                  events={events.length > 0 ? events : sentinel.rollbackIncidents}
                   onTriggerHack={handleTriggerHack}
                   onReset={handleReset}
                   onActionToast={handleActionToast}
@@ -475,6 +492,7 @@ function DashboardApp() {
                   activeRepo={activeRepo}
                   vaultTvl={onChainVault.balanceFormatted}
                   blockNumber={onChainVault.blockNumber}
+                  onChainEvents={sentinel.events}
                   onNavigatePR={() => {
                     setCurrentView("repository");
                     setActiveTab("pulls");
