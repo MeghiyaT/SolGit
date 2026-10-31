@@ -46,19 +46,19 @@
 - Delete: `dashboard/src/app/api/vault/state/route.ts`
 - Test: `dashboard/src/test/onchain.test.ts`
 
-- [ ] **Step 1: Write unit test for on-chain telemetry reader**
+- [x] **Step 1: Write unit test for on-chain telemetry reader**
   Create `dashboard/src/test/onchain.test.ts` verifying that `getBalance` correctly formats wei to ether string and handles fallback cleanly.
-- [ ] **Step 2: Run test to confirm expectations**
+- [x] **Step 2: Run test to confirm expectations**
   Run `npm --prefix dashboard test` and confirm test structure.
-- [ ] **Step 3: Implement `useOnChainVault.ts`**
+- [x] **Step 3: Implement `useOnChainVault.ts`**
   Build a dedicated Viem hook that creates a `publicClient` on MST Coral Testnet (`https://coralrpc.mstblockchain.com`), polls the contract's balance every 3 seconds, and tracks block numbers.
-- [ ] **Step 4: Update `dashboard/src/app/page.tsx` and `SecurityTab.tsx`**
+- [x] **Step 4: Update `dashboard/src/app/page.tsx` and `SecurityTab.tsx`**
   - Integrate `useOnChainVault` using `activeRepo?.contractAddress`.
   - Pass the live on-chain balance to `SecurityTab`.
   - Remove all remaining polling to `/api/vault/state`.
-- [ ] **Step 5: Delete `/api/vault/state/route.ts`**
+- [x] **Step 5: Delete `/api/vault/state/route.ts`**
   Completely remove the temporary local mock bridge.
-- [ ] **Step 6: Verify linting and build**
+- [x] **Step 6: Verify linting and build**
   Run `npm --prefix dashboard run lint && npm --prefix dashboard run build`.
 
 ---
@@ -69,17 +69,17 @@
 - Modify: `demo-dapp/src/App.tsx`
 - Modify: `demo-dapp/src/lib/contracts.ts`
 
-- [ ] **Step 1: Configure real testnet contract addresses and ABI**
+- [x] **Step 1: Configure real testnet contract addresses and ABI**
   Ensure `DEFAULT_DIAMOND_ADDRESS` matches the deployed SolGit Diamond contract on MST Coral (`0x3348f760E980326079011707B9E40a6b29910D69` or the user's active repository address).
-- [ ] **Step 2: Implement real wallet transaction execution in `handleDeposit`**
+- [x] **Step 2: Implement real wallet transaction execution in `handleDeposit`**
   - When Alice or an Injected Web3 wallet deposits, execute `walletClient.sendTransaction` or `walletClient.writeContract` with native tMSTC on MST Coral Testnet.
   - Wait for receipt using `publicClient.waitForTransactionReceipt`.
-- [ ] **Step 3: Implement real exploit execution in `handleWithdraw`**
+- [x] **Step 3: Implement real exploit execution in `handleWithdraw`**
   - When withdrawing from an account with 0 balance, send the actual transaction call to `withdraw(200 ether)` on MST Coral.
   - Intercept the on-chain revert / `InvariantBreached` reason and display the real transaction receipt on MSTScan.
-- [ ] **Step 4: Remove mock fetch calls to `localhost:3000`**
+- [x] **Step 4: Remove mock fetch calls to `localhost:3000`**
   Purge all `fetch("http://localhost:3000/api/vault/state")` calls from `demo-dapp/src/App.tsx`.
-- [ ] **Step 5: Verify build**
+- [x] **Step 5: Verify build**
   Run `npm --prefix demo-dapp run build`.
 
 ---
@@ -91,16 +91,16 @@
 - Modify: `dashboard/src/components/tabs/SecurityTab.tsx`
 - Modify: `watcher/src/fixer.ts`
 
-- [ ] **Step 1: Subscribe SolGit Sentinel to real MST Coral contract events**
+- [x] **Step 1: Subscribe SolGit Sentinel to real MST Coral contract events**
   Use `publicClient.watchContractEvent` in `dashboard` to listen for:
   - `Deposited(address,uint256)`
   - `Withdrawn(address,uint256)`
   - `EmergencyRollbackExecuted(bytes4,uint256,uint256)`
-- [ ] **Step 2: Update Security tab Incident Log with real transaction hashes**
+- [x] **Step 2: Update Security tab Incident Log with real transaction hashes**
   Populate `events` in `SecurityTab.tsx` with authentic transaction hashes from MST Coral Testnet, linking out to `https://coral.mstscan.com/tx/0x...`.
-- [ ] **Step 3: Trigger AIFixerConsole on authentic on-chain rollback events**
+- [x] **Step 3: Trigger AIFixerConsole on authentic on-chain rollback events**
   When an `EmergencyRollbackExecuted` log is detected on-chain, automatically activate the 5-stage AI Fixer telemetry console and stage PR #42.
-- [ ] **Step 4: Run Foundry test suite**
+- [x] **Step 4: Run Foundry test suite**
   Run `forge test` to ensure all 37 contract invariant tests pass.
 
 ---
@@ -111,12 +111,12 @@
 - Modify: `dashboard/vercel.json`
 - Modify: `README.md`
 
-- [ ] **Step 1: Verify all tests across all workspaces**
+- [x] **Step 1: Verify all tests across all workspaces**
   - `forge test` (37/37 passing)
   - `npm --prefix dashboard test` (all tests passing)
   - `npm --prefix dashboard run lint` (0 errors, 0 warnings)
   - `npm --prefix dashboard run build` (Next.js production build succeeds)
   - `npm --prefix demo-dapp run build` (Vite production build succeeds)
-- [ ] **Step 2: Document Vercel deployment instructions**
+- [x] **Step 2: Document Vercel deployment instructions**
   Provide clear instructions and CLI commands for deploying SolGit Dashboard to Vercel with necessary environment variables.
 
