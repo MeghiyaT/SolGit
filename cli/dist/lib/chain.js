@@ -44,14 +44,18 @@ export function loadConfig(cwd = process.cwd()) {
     }
     const rpcUrl = fileConfig.rpcUrl || process.env.MST_TESTNET_RPC_URL || process.env.RPC_URL || "https://coralrpc.mstblockchain.com";
     const chainId = fileConfig.chainId || (rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost") ? 31337 : 54635);
-    const routerAddress = (fileConfig.routerAddress || process.env.ROUTER_ADDRESS);
+    const diamondAddress = (fileConfig.diamondAddress || fileConfig.routerAddress || process.env.DIAMOND_ADDRESS || process.env.ROUTER_ADDRESS);
+    const routerAddress = diamondAddress;
     const registryAddress = (fileConfig.registryAddress || process.env.REGISTRY_ADDRESS);
+    const guardianAddress = (fileConfig.guardianAddress || process.env.GUARDIAN_ADDRESS);
     const privateKey = (fileConfig.privateKey || process.env.PRIVATE_KEY);
     return {
         rpcUrl,
         chainId,
+        diamondAddress,
         routerAddress,
         registryAddress,
+        guardianAddress,
         privateKey: privateKey?.startsWith("0x") ? privateKey : privateKey ? `0x${privateKey}` : undefined,
     };
 }

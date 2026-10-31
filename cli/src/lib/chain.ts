@@ -58,15 +58,19 @@ export function loadConfig(cwd: string = process.cwd()): SolGitConfig {
 
   const rpcUrl = fileConfig.rpcUrl || process.env.MST_TESTNET_RPC_URL || process.env.RPC_URL || "https://coralrpc.mstblockchain.com";
   const chainId = fileConfig.chainId || (rpcUrl.includes("127.0.0.1") || rpcUrl.includes("localhost") ? 31337 : 54635);
-  const routerAddress = (fileConfig.routerAddress || process.env.ROUTER_ADDRESS) as Address | undefined;
+  const diamondAddress = (fileConfig.diamondAddress || fileConfig.routerAddress || process.env.DIAMOND_ADDRESS || process.env.ROUTER_ADDRESS) as Address | undefined;
+  const routerAddress = diamondAddress;
   const registryAddress = (fileConfig.registryAddress || process.env.REGISTRY_ADDRESS) as Address | undefined;
+  const guardianAddress = (fileConfig.guardianAddress || process.env.GUARDIAN_ADDRESS) as Address | undefined;
   const privateKey = (fileConfig.privateKey || process.env.PRIVATE_KEY) as `0x${string}` | undefined;
 
   return {
     rpcUrl,
     chainId,
+    diamondAddress,
     routerAddress,
     registryAddress,
+    guardianAddress,
     privateKey: privateKey?.startsWith("0x") ? privateKey : privateKey ? `0x${privateKey}` as `0x${string}` : undefined,
   };
 }

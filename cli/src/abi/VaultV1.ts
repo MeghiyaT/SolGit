@@ -40,7 +40,13 @@ export const VaultV1ABI = [
         "internalType": "uint256"
       }
     ],
-    "outputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
     "stateMutability": "nonpayable"
   },
   {
@@ -121,17 +127,38 @@ export const VaultV1ABI = [
   },
   {
     "type": "error",
-    "name": "InvalidVersion",
+    "name": "EthTransferFailed",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "Unauthorized",
-    "inputs": []
+    "name": "InsufficientBalance",
+    "inputs": [
+      {
+        "name": "available",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "requested",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
     "name": "ZeroAddress",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroAmount",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ZeroDeposit",
     "inputs": []
   }
 ] as const;
