@@ -54,6 +54,17 @@ interface IVersionRegistry {
     /// @param goodVer The version to restore (must be Stable)
     function rollback(bytes4 selector, uint32 badVer, uint32 goodVer) external;
 
+    /// @notice Synchronize an emergency rollback executed by SolGitDiamond. Router-only.
+    /// @param selector The function selector
+    /// @param oldFacet The vulnerable facet address to quarantine
+    /// @param newFacet The restored stable facet address
+    function syncRollback(bytes4 selector, address oldFacet, address newFacet) external;
+
+    /// @notice Synchronize a facet addition or replacement from SolGitDiamond. Router-only.
+    /// @param selector The function selector
+    /// @param implementation The new facet implementation address
+    function syncDiamondCut(bytes4 selector, address implementation) external;
+
     /// @notice Manually revert a selector to a specified version. Owner-only.
     /// @param selector The function selector
     /// @param targetVersion The version number to revert to (cannot be Quarantined)

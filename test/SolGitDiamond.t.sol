@@ -12,6 +12,8 @@ import {IDiamondCut} from "../src/interfaces/IDiamondCut.sol";
 import {IDiamondLoupe} from "../src/interfaces/IDiamondLoupe.sol";
 import {IERC173} from "../src/interfaces/IERC173.sol";
 import {ISolGitGuardian} from "../src/interfaces/ISolGitGuardian.sol";
+import {LibDiamond} from "../src/libraries/LibDiamond.sol";
+import {SolGitErrors} from "../src/libraries/SolGitErrors.sol";
 
 contract SolGitDiamondTest is Test {
     SolGitDiamond internal diamond;
@@ -148,5 +150,19 @@ contract SolGitDiamondTest is Test {
         ownerContract.transferOwnership(newOwner);
 
         assertEq(ownerContract.owner(), newOwner);
+    }
+
+    function test_OwnershipTransferToZeroAddressReverts() public {
+        IERC173 ownerContract = IERC173(address(diamond));
+        vm.prank(owner);
+        vm.expectRevert(SolGitErrors.ZeroAddress.selector);
+        ownerContract.transferOwnership(address(0));
+    }
+
+    function test_PlainEthTransferReverts() public {
+        vm.prank(user);
+        vm.expectRevert(LibDiamond.DirectDepositNotSupported.selector);
+        (bool ok,) = address(diamond).call{value: 1 ether}("");
+        ok; // silence unused variable warning
     }
 }

@@ -26,6 +26,28 @@ library SolGitErrors {
     /// @notice A zero address was provided where a valid address is required
     error ZeroAddress();
 
+    /// @notice ETH deposit amount cannot be zero
+    error ZeroDeposit();
+
+    /// @notice Amount specified cannot be zero
+    error ZeroAmount();
+
+    /// @notice Account balance is insufficient for requested withdrawal or transfer
+    /// @param available Current account balance
+    /// @param requested Attempted withdrawal or transfer amount
+    error InsufficientBalance(uint256 available, uint256 requested);
+
+    /// @notice ETH transfer failed
+    error EthTransferFailed();
+
+    /// @notice Direct deposits without calldata are not supported
+    error DirectDepositNotSupported();
+
+    /// @notice Target facet does not implement the selector to be rolled back
+    /// @param facet Target facet address
+    /// @param selector Function selector
+    error TargetFacetDoesNotImplementSelector(address facet, bytes4 selector);
+
     /// @notice No implementation is registered for the given selector
     /// @param selector The unregistered function selector
     error SelectorNotRegistered(bytes4 selector);

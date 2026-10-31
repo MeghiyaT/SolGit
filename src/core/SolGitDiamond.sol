@@ -53,6 +53,9 @@ contract SolGitDiamond {
         }
     }
 
-    receive() external payable {}
+    /// @notice Revert plain ETH transfers to avoid uncredited and trapped funds
+    receive() external payable {
+        revert LibDiamond.DirectDepositNotSupported();
+    }
 }
 

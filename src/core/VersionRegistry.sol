@@ -133,6 +133,94 @@ contract VersionRegistry is IVersionRegistry {
     }
 
     /// @inheritdoc IVersionRegistry
+    function syncRollback(bytes4 selector, address oldFacet, address newFacet) external onlyRouter {
+        VersionInfo[] storage history = _history[selector];
+        uint32 badVer = 0;
+        uint32 goodVer = 0;
+
+        // Quarantine oldFacet
+        for (uint256 i = 0; i < history.length; i++) {
+            if (history[i].implementation == oldFacet) {
+                history[i].status = VersionStatus.Quarantined;
+                badVer = history[i].version;
+                break;
+            }
+        }
+
+        // Restore newFacet (active)
+        bool foundGood = false;
+        for (uint256 i = 0; i < history.length; i++) {
+            if (history[i].implementation == newFacet) {
+                _activeIndex[selector] = i;
+                goodVer = history[i].version;
+                foundGood = true;
+                break;
+            }
+        }
+
+        // If newFacet was not previously recorded in history, register it
+        if (!foundGood && newFacet != address(0)) {
+            uint256 index = history.length;
+            goodVer = uint32(index + 1);
+            history.push(
+                VersionInfo({
+                    version: goodVer,
+                    implementation: newFacet,
+                    codeHash: keccak256(newFacet.code),
+                    status: VersionStatus.Stable,
+                    timestamp: uint64(block.timestamp)
+                })
+            );
+            _activeIndex[selector] = index;
+            _lastStableIndex[selector] = index;
+        }
+
+        emit VersionRolledBack(selector, badVer, goodVer);
+    }
+
+    /// @inheritdoc IVersionRegistry
+    function syncDiamondCut(bytes4 selector, address impl) external onlyRouter {
+        if (impl == address(0)) revert SolGitErrors.ZeroAddress();
+
+        // Track selector if new
+        if (!_isSelectorRegistered[selector]) {
+            _registeredSelectors.push(selector);
+            _isSelectorRegistered[selector] = true;
+            _lastStableIndex[selector] = type(uint256).max;
+        }
+
+        VersionInfo[] storage history = _history[selector];
+        // If the active version already matches impl, no-op
+        if (history.length > 0 && history[_activeIndex[selector]].implementation == impl) {
+            return;
+        }
+
+        // Check if impl already exists in history
+        for (uint256 i = 0; i < history.length; i++) {
+            if (history[i].implementation == impl) {
+                _activeIndex[selector] = i;
+                return;
+            }
+        }
+
+        uint256 index = history.length;
+        uint32 version = uint32(index + 1);
+
+        history.push(
+            VersionInfo({
+                version: version,
+                implementation: impl,
+                codeHash: keccak256(impl.code),
+                status: VersionStatus.Active,
+                timestamp: uint64(block.timestamp)
+            })
+        );
+
+        _activeIndex[selector] = index;
+        emit VersionPushed(selector, version, impl, keccak256(impl.code));
+    }
+
+    /// @inheritdoc IVersionRegistry
     function manualRevert(bytes4 selector, uint32 targetVersion) external onlyOwner {
         uint256 targetIndex = _versionIndex(selector, targetVersion);
         VersionInfo storage targetInfo = _history[selector][targetIndex];

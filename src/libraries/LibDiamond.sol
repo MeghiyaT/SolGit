@@ -2,6 +2,7 @@
 pragma solidity 0.8.24;
 
 import {IDiamondCut} from "../interfaces/IDiamondCut.sol";
+import {IVersionRegistry} from "../interfaces/IVersionRegistry.sol";
 
 /// @title LibDiamond — Diamond Storage & Core Functions (EIP-2535 Diamond Standard)
 /// @dev Enhanced with SolGit Guardian Role and Per-Selector Emergency Rollback
@@ -33,6 +34,10 @@ library LibDiamond {
         address guardian;
         // Registry of verified stable facets that Guardian is permitted to roll back to
         mapping(address => bool) isRegisteredStableFacet;
+        // Tracks whether a facet implements/supports a specific selector
+        mapping(address => mapping(bytes4 => bool)) facetSupportsSelector;
+        // Optional VersionRegistry for unified on-chain state synchronization
+        address versionRegistry;
     }
 
     // ──────────────────────────────────────────────
@@ -41,6 +46,7 @@ library LibDiamond {
 
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
     event GuardianUpdated(address indexed previousGuardian, address indexed newGuardian);
+    event VersionRegistryUpdated(address indexed previousRegistry, address indexed newRegistry);
     event StableFacetRegistered(address indexed facet, bool isStable);
     event SelectorRolledBack(
         bytes4 indexed selector, address indexed oldFacet, address indexed newFacet, string reason
@@ -53,6 +59,9 @@ library LibDiamond {
     error NotContractOwner();
     error NotGuardian();
     error TargetFacetNotRegisteredStable(address facet);
+    error TargetFacetDoesNotImplementSelector(address facet, bytes4 selector);
+    error ZeroAddress();
+    error DirectDepositNotSupported();
     error NoSelectorsInFacet();
     error CannotAddSelectorToZeroAddress(bytes4 selector);
     error CannotAddExistingFunction(bytes4 selector);
@@ -75,6 +84,7 @@ library LibDiamond {
     // ──────────────────────────────────────────────
 
     function setContractOwner(address _newOwner) internal {
+        if (_newOwner == address(0)) revert ZeroAddress();
         DiamondStorage storage ds = diamondStorage();
         address previousOwner = ds.contractOwner;
         ds.contractOwner = _newOwner;
@@ -111,11 +121,39 @@ library LibDiamond {
     function registerStableFacet(address _facet, bool _isStable) internal {
         DiamondStorage storage ds = diamondStorage();
         ds.isRegisteredStableFacet[_facet] = _isStable;
+        bytes4[] memory selectors = ds.facetFunctionSelectors[_facet].functionSelectors;
+        for (uint256 i = 0; i < selectors.length; i++) {
+            ds.facetSupportsSelector[_facet][selectors[i]] = true;
+        }
         emit StableFacetRegistered(_facet, _isStable);
+    }
+
+    function registerStableFacetWithSelectors(address _facet, bytes4[] memory _selectors) internal {
+        DiamondStorage storage ds = diamondStorage();
+        ds.isRegisteredStableFacet[_facet] = true;
+        for (uint256 i = 0; i < _selectors.length; i++) {
+            ds.facetSupportsSelector[_facet][_selectors[i]] = true;
+        }
+        emit StableFacetRegistered(_facet, true);
+    }
+
+    function facetSupportsSelector(address _facet, bytes4 _selector) internal view returns (bool) {
+        return diamondStorage().facetSupportsSelector[_facet][_selector];
     }
 
     function isRegisteredStableFacet(address _facet) internal view returns (bool) {
         return diamondStorage().isRegisteredStableFacet[_facet];
+    }
+
+    function setVersionRegistry(address _versionRegistry) internal {
+        DiamondStorage storage ds = diamondStorage();
+        address previousRegistry = ds.versionRegistry;
+        ds.versionRegistry = _versionRegistry;
+        emit VersionRegistryUpdated(previousRegistry, _versionRegistry);
+    }
+
+    function versionRegistry() internal view returns (address) {
+        return diamondStorage().versionRegistry;
     }
 
     // ──────────────────────────────────────────────
@@ -135,6 +173,23 @@ library LibDiamond {
         }
         emit IDiamondCut.DiamondCut(_diamondCut, _init, _calldata);
         initializeDiamondCut(_init, _calldata);
+
+        // Synchronize cuts with VersionRegistry if configured
+        DiamondStorage storage ds = diamondStorage();
+        if (ds.versionRegistry != address(0)) {
+            for (uint256 facetIndex; facetIndex < _diamondCut.length; facetIndex++) {
+                if (
+                    _diamondCut[facetIndex].action == IDiamondCut.FacetCutAction.Add
+                        || _diamondCut[facetIndex].action == IDiamondCut.FacetCutAction.Replace
+                ) {
+                    address facet = _diamondCut[facetIndex].facetAddress;
+                    bytes4[] memory selectors = _diamondCut[facetIndex].functionSelectors;
+                    for (uint256 s; s < selectors.length; s++) {
+                        try IVersionRegistry(ds.versionRegistry).syncDiamondCut(selectors[s], facet) {} catch {}
+                    }
+                }
+            }
+        }
     }
 
     function addFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
@@ -204,6 +259,7 @@ library LibDiamond {
         ds.selectorToFacetAndPosition[_selector].functionSelectorPosition = _selectorPosition;
         ds.selectorToFacetAndPosition[_selector].facetAddress = _facetAddress;
         ds.facetFunctionSelectors[_facetAddress].functionSelectors.push(_selector);
+        ds.facetSupportsSelector[_facetAddress][_selector] = true;
     }
 
     function removeFunction(DiamondStorage storage ds, address _facetAddress, bytes4 _selector) internal {
@@ -242,6 +298,9 @@ library LibDiamond {
         if (!ds.isRegisteredStableFacet[_targetFacet]) {
             revert TargetFacetNotRegisteredStable(_targetFacet);
         }
+        if (!ds.facetSupportsSelector[_targetFacet][_selector]) {
+            revert TargetFacetDoesNotImplementSelector(_targetFacet, _selector);
+        }
 
         address oldFacet = ds.selectorToFacetAndPosition[_selector].facetAddress;
         if (oldFacet == address(0)) revert CannotReplaceNonExistentFunction(_selector);
@@ -256,6 +315,11 @@ library LibDiamond {
             addFacet(ds, _targetFacet);
         }
         addFunction(ds, _selector, selectorPosition, _targetFacet);
+
+        // Synchronize with VersionRegistry if configured
+        if (ds.versionRegistry != address(0)) {
+            try IVersionRegistry(ds.versionRegistry).syncRollback(_selector, oldFacet, _targetFacet) {} catch {}
+        }
 
         emit SelectorRolledBack(_selector, oldFacet, _targetFacet, _reason);
     }
