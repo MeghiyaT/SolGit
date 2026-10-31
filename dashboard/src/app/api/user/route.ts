@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
 
-  if (!address || !isAddress(address)) {
+  if (!address || !isAddress(address, { strict: false })) {
     return NextResponse.json({ error: "A valid address query parameter is required" }, { status: 400 });
   }
 
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isAddress(address)) {
+    if (!isAddress(address, { strict: false })) {
       return NextResponse.json(
         { error: "Invalid Ethereum/MST address format" },
         { status: 400 }

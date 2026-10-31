@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
 
-  if (address && !isAddress(address)) {
+  if (address && !isAddress(address, { strict: false })) {
     return NextResponse.json({ error: "Invalid address parameter" }, { status: 400 });
   }
 
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!isAddress(owner_address) || !isAddress(contract_address)) {
+    if (!isAddress(owner_address, { strict: false }) || !isAddress(contract_address, { strict: false })) {
       return NextResponse.json(
         { error: "Invalid owner_address or contract_address format" },
         { status: 400 }
